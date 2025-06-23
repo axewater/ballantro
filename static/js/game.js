@@ -11,6 +11,11 @@ class PokerGame {
 
         this.isSorting = false; // Flag to prevent actions during sort animation
 
+        // DOM elements for live preview
+        this.previewHandTypeElement = document.getElementById('preview-hand-type');
+        this.previewBaseScoreElement = document.getElementById('preview-base-score');
+        this.previewDescriptionElement = document.getElementById('preview-description');
+
         this.initializeEventListeners();
         this.showScreen('startup');
     }
@@ -70,6 +75,7 @@ class PokerGame {
                 this.selectedCards.clear();
                 this.updateGameDisplay();
                 this.showScreen('game');
+                this.updateLivePreview(); // Clear preview for new game
                 this.animateCardDraw();
             } else {
                 console.error('Failed to start new game:', data);
@@ -101,6 +107,7 @@ class PokerGame {
                 this.gameState = data.game_state;
                 this.selectedCards.clear();
                 this.updateGameDisplay();
+                this.updateLivePreview(); // Update preview after draw
                 this.animateCardDraw();
             } else {
                 console.error('Failed to draw cards:', data);
@@ -295,11 +302,13 @@ class PokerGame {
                 ).then(() => {
                     this.selectedCards.clear();
                     this.updateGameDisplay();
+                    this.updateLivePreview(); // Update preview after round change
                     this.showScreen('game');
                 });
             } else {
                 this.selectedCards.clear();
                 this.updateGameDisplay();
+                this.updateLivePreview(); // Update preview after continuing hand
                 this.showScreen('game');
             }
         }
@@ -383,6 +392,58 @@ class PokerGame {
         
         // Update selection count
         document.getElementById('selection-count').textContent = this.selectedCards.size;
+
+        // Update live preview
+        this.updateLivePreview();
+    }
+
+    async updateLivePreview() {
+        if (!this.previewHandTypeElement || !this.previewBaseScoreElement || !this.previewDescriptionElement) {
+            console.warn("Preview elements not found.");
+            return;
+        }
+
+        if (this.selectedCards.size === 0) {
+            this.previewHandTypeElement.textContent = '-';
+            this.previewBaseScoreElement.textContent = '-';
+            this.previewDescriptionElement.textContent = 'Select cards to see a preview.';
+            return;
+        }
+
+        const cardsForPreview = Array.from(this.selectedCards)
+            .map(index => this.gameState.hand[index])
+            .filter(card => card); // Ensure no undefined cards
+
+        if (cardsForPreview.length === 0) { // Should match selectedCards.size but good failsafe
+            this.previewHandTypeElement.textContent = '-';
+            this.previewBaseScoreElement.textContent = '-';
+            this.previewDescriptionElement.textContent = 'Select cards to see a preview.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/preview_hand', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cardsForPreview) // Send actual card objects
+            });
+            const data = await response.json();
+
+            if (data.success && data.preview) {
+                this.previewHandTypeElement.textContent = this.formatHandType(data.preview.hand_type);
+                this.previewBaseScoreElement.textContent = data.preview.score_info || `${data.preview.base_chips} × ${data.preview.multiplier}`;
+                this.previewDescriptionElement.textContent = data.preview.description;
+            } else if (data.success && !data.preview) { // E.g. API returns null for 0 cards
+                 this.previewHandTypeElement.textContent = '-';
+                 this.previewBaseScoreElement.textContent = '-';
+                 this.previewDescriptionElement.textContent = 'Select cards to see a preview.';
+            }
+        } catch (error) {
+            console.error('Error fetching hand preview:', error);
+            this.previewHandTypeElement.textContent = 'Error';
+            this.previewBaseScoreElement.textContent = '-';
+            this.previewDescriptionElement.textContent = 'Could not fetch preview.';
+        }
     }
 
     getSuitSymbol(suit) {
@@ -585,6 +646,7 @@ class PokerGame {
         // 6. Update UI elements that depend on selection/hand state
         this.updateButtonStates();
         this.updateSelectionCount();
+        this.updateLivePreview(); // Update preview after sort
     }
 
     updateButtonStates() {

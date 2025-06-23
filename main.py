@@ -7,7 +7,7 @@ import uvicorn
 import os
 
 from backend.game_engine import GameEngine
-from backend.models import GameAction, GameState
+from backend.models import GameAction, GameState, Card
 
 app = FastAPI(title="Poker Game", description="Single-player poker card game")
 
@@ -88,6 +88,19 @@ async def get_highscores():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/preview_hand")
+async def preview_hand(cards: list[Card]):
+    """Evaluate a partial hand for live preview"""
+    try:
+        if not cards: # Handle empty selection
+            return {"success": True, "preview": None}
+        # The PokerEvaluator needs to be imported or accessed.
+        # Assuming it's accessible via game_engine or directly.
+        from backend.poker_evaluator import PokerEvaluator # Direct import for simplicity here
+        preview_result = PokerEvaluator.evaluate_preview_hand(cards)
+        return {"success": True, "preview": preview_result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
-

@@ -17,6 +17,105 @@
             <div class="bg-pattern"></div>
         </div>
 
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Live Score Preview Panel -->
+            <div id="live-score-preview" class="glass-panel live-preview-panel">
+                <h4 class="preview-title">Hand Preview</h4>
+                <div class="preview-item">
+                    <span class="preview-label">Type:</span>
+                    <span id="preview-hand-type" class="preview-value">-</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Base Score:</span>
+                    <span id="preview-base-score" class="preview-value">-</span>
+                </div>
+                <p id="preview-description" class="preview-description-text"></p>
+            </div>
+
+            <!-- Wrapper for the rest of the game content -->
+            <div class="main-game-content-wrapper">
+                <!-- Game Header -->
+                <div class="game-header">
+                    <div class="glass-panel header-panel">
+                        <div class="game-info">
+                            <div class="info-item">
+                                <span class="info-label">Round</span>
+                                <span id="current-round" class="info-value">1</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Score</span>
+                                <span id="total-score" class="info-value">0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Money</span>
+                                <span id="player-money" class="info-value">$0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Target</span>
+                                <span id="round-target" class="info-value">300</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Hands</span>
+                                <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Draws</span>
+                                <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hand Area -->
+                <div class="hand-area">
+                    <div class="glass-panel hand-panel">
+                        <h3 class="hand-title">Your Hand</h3>
+                        <div id="player-hand" class="card-container">
+                            <!-- Cards will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Area -->
+                <div class="action-area">
+                    <div class="glass-panel action-panel">
+                        <div class="action-buttons">
+                            <button id="draw-cards-btn" class="btn btn-secondary" disabled>
+                                <span class="btn-icon">🔄</span>
+                                Draw Cards
+                            </button>
+                            <button id="play-hand-btn" class="btn btn-primary" disabled>
+                                <span class="btn-icon">🎯</span>
+                                Play Hand
+                            </button>
+                            <button id="sort-rank-btn" class="btn btn-secondary">
+                                <span class="btn-icon">🔢</span>
+                                Sort by Rank
+                            </button>
+                            <button id="sort-suit-btn" class="btn btn-secondary">
+                                <span class="btn-icon">♠️</span>
+                                Sort by Suit
+                            </button>
+                        </div>
+                        <div class="selection-info">
+                            <span id="selection-count">0</span> cards selected
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deck Info -->
+                <div class="deck-info">
+                    <div class="glass-panel deck-panel">
+                        <div class="deck-icon">🂠</div>
+                        <div class="deck-count">
+                            <span id="deck-remaining">52</span> cards remaining
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Startup Screen -->
         <div id="startup-screen" class="screen active">
             <div class="glass-panel main-menu">
@@ -36,88 +135,6 @@
                         <span class="btn-icon">🏆</span>
                         Highscores
                     </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Screen -->
-        <div id="game-screen" class="screen">
-            <!-- Game Header -->
-            <div class="game-header">
-                <div class="glass-panel header-panel">
-                    <div class="game-info">
-                        <div class="info-item">
-                            <span class="info-label">Round</span>
-                            <span id="current-round" class="info-value">1</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Score</span>
-                            <span id="total-score" class="info-value">0</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Money</span>
-                            <span id="player-money" class="info-value">$0</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Target</span>
-                            <span id="round-target" class="info-value">300</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Hands</span>
-                            <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Draws</span>
-                            <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Hand Area -->
-            <div class="hand-area">
-                <div class="glass-panel hand-panel">
-                    <h3 class="hand-title">Your Hand</h3>
-                    <div id="player-hand" class="card-container">
-                        <!-- Cards will be dynamically added here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Area -->
-            <div class="action-area">
-                <div class="glass-panel action-panel">
-                    <div class="action-buttons">
-                        <button id="draw-cards-btn" class="btn btn-secondary" disabled>
-                            <span class="btn-icon">🔄</span>
-                            Draw Cards
-                        </button>
-                        <button id="play-hand-btn" class="btn btn-primary" disabled>
-                            <span class="btn-icon">🎯</span>
-                            Play Hand
-                        </button>
-                        <button id="sort-rank-btn" class="btn btn-secondary">
-                            <span class="btn-icon">🔢</span>
-                            Sort by Rank
-                        </button>
-                        <button id="sort-suit-btn" class="btn btn-secondary">
-                            <span class="btn-icon">♠️</span>
-                            Sort by Suit
-                        </button>
-                    </div>
-                    <div class="selection-info">
-                        <span id="selection-count">0</span> cards selected
-                    </div>
-                </div>
-            </div>
-
-            <!-- Deck Info -->
-            <div class="deck-info">
-                <div class="glass-panel deck-panel">
-                    <div class="deck-icon">🂠</div>
-                    <div class="deck-count">
-                        <span id="deck-remaining">52</span> cards remaining
-                    </div>
                 </div>
             </div>
         </div>

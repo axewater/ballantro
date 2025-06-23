@@ -1,5 +1,5 @@
-from typing import List, Dict, Tuple, Optional
-from collections import Counter
+from typing import List, Dict, Tuple, Optional, Any
+from collections import Counter, defaultdict
 from .models import Card, HandType, HandResult, Rank
 
 class PokerEvaluator:
@@ -183,3 +183,100 @@ class PokerEvaluator:
         # Regular straight - return highest rank
         return max(ranks, key=lambda r: cls.RANK_VALUES[r])
 
+    @classmethod
+    def evaluate_preview_hand(cls, cards: List[Card]) -> Optional[Dict[str, Any]]:
+        """
+        Evaluate a partial hand (1 to 5 cards) for live preview.
+        Returns a dictionary with hand_type, description, base_chips, and multiplier.
+        """
+        num_cards = len(cards)
+        if not 1 <= num_cards <= 5:
+            return None # Or raise error, but for preview, None might be better
+
+        if num_cards == 5:
+            # For a full 5-card selection, use the standard evaluation
+            full_eval = cls.evaluate_hand(cards)
+            return {
+                "hand_type": full_eval.hand_type.value,
+                "description": full_eval.description,
+                "base_chips": full_eval.base_chips,
+                "multiplier": full_eval.multiplier,
+                "score_info": f"{full_eval.base_chips} × {full_eval.multiplier} = {full_eval.base_chips * full_eval.multiplier}"
+            }
+
+        # Partial hand evaluation (1-4 cards)
+        ranks = [card.rank for card in cards]
+        suits = [card.suit for card in cards]
+        rank_counts = Counter(ranks)
+        
+        # Determine best possible partial hand
+        hand_type = HandType.HIGH_CARD # Default
+
+        # Check for N-of-a-kind
+        if 4 in rank_counts.values():
+            hand_type = HandType.FOUR_OF_A_KIND
+        elif 3 in rank_counts.values():
+            hand_type = HandType.THREE_OF_A_KIND
+        elif 2 in rank_counts.values():
+            # Check for two pair (requires 4 cards)
+            if num_cards == 4 and sum(1 for count in rank_counts.values() if count == 2) == 2:
+                hand_type = HandType.TWO_PAIR
+            else:
+                hand_type = HandType.ONE_PAIR
+        
+        # Check for flush potential (if all cards same suit and better than N-of-a-kind)
+        # A flush is generally better than pairs or three of a kind if it's the primary feature.
+        # However, for preview, we might just note it. For now, N-of-a-kind takes precedence for <5 cards.
+        # If we want to show "Potential Flush" if all cards are same suit:
+        is_potential_flush = len(set(suits)) == 1
+        
+        # If it's a potential flush and better than current hand_type (e.g. high card, one pair)
+        # This logic can be complex. For simplicity, let's stick to N-of-a-kind for <5 cards,
+        # and High Card if no N-of-a-kind. A full flush is only evaluated at 5 cards.
+        # However, if we have, say, 3 cards of the same suit, it's still "High Card" unless they also form a pair/trips.
+        # The HAND_SCORES implies Flush is better than Three of a Kind.
+        # Let's refine:
+        
+        current_hand_score_rank = list(cls.HAND_SCORES.keys()).index(hand_type)
+
+        if is_potential_flush and num_cards >= 3: # Typically need 3 for a "flush draw" to be notable
+            # If a flush is possible and its rank is better than the current N-of-a-kind
+            flush_score_rank = list(cls.HAND_SCORES.keys()).index(HandType.FLUSH)
+            if flush_score_rank < current_hand_score_rank : # Lower index means better hand
+                 # This is tricky because we don't have a "Potential Flush" hand type.
+                 # For now, let's assume N-of-a-kind is the primary preview for < 5 cards.
+                 # The full `evaluate_hand` handles actual flushes.
+                 pass
+
+        # Generate description for partial hands
+        description = ""
+        if hand_type == HandType.FOUR_OF_A_KIND:
+            quad_rank = [r for r, c in rank_counts.items() if c == 4][0]
+            description = f"Four {quad_rank}s (preview)"
+        elif hand_type == HandType.THREE_OF_A_KIND:
+            trip_rank = [r for r, c in rank_counts.items() if c == 3][0]
+            description = f"Three {trip_rank}s (preview)"
+        elif hand_type == HandType.TWO_PAIR: # Requires 4 cards
+            pairs = sorted([r for r, c in rank_counts.items() if c == 2], key=lambda r_val: cls.RANK_VALUES[r_val], reverse=True)
+            description = f"Two Pair: {pairs[0]}s & {pairs[1]}s (preview)"
+        elif hand_type == HandType.ONE_PAIR:
+            pair_rank = [r for r, c in rank_counts.items() if c == 2][0]
+            description = f"Pair of {pair_rank}s (preview)"
+        else: # High Card
+            high_card_rank = max(ranks, key=lambda r_val: cls.RANK_VALUES[r_val])
+            description = f"High Card {high_card_rank} (preview)"
+            if is_potential_flush and num_cards >= 3: # Add note about flush potential
+                description += f", {num_cards}-card Flush potential"
+
+
+        score_config = cls.HAND_SCORES[hand_type]
+        base_chips = score_config["base_chips"]
+        multiplier = score_config["multiplier"]
+
+        return {
+            "hand_type": hand_type.value,
+            "description": description,
+            "base_chips": base_chips,
+            "multiplier": multiplier,
+            "score_info": f"{base_chips} × {multiplier} = {base_chips * multiplier}"
+        }

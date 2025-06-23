@@ -28,11 +28,11 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, 
-        #667eea 0%, 
-        #764ba2 25%, 
-        #f093fb 50%, 
-        #f5576c 75%, 
+    background: linear-gradient(135deg,
+        #667eea 0%,
+        #764ba2 25%,
+        #f093fb 50%,
+        #f5576c 75%,
         #4facfe 100%);
     opacity: 0.8;
 }
@@ -43,7 +43,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
+    background-image:
         radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
         radial-gradient(circle at 75% 75%, rgba(255,255,255,0.05) 0%, transparent 50%);
     background-size: 100px 100px;
@@ -72,7 +72,7 @@ body {
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
@@ -82,7 +82,7 @@ body {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
@@ -230,14 +230,24 @@ body {
 
 /* Game screen layout */
 #game-screen {
-    flex-direction: column;
+    display: flex; /* Enable flexbox for side-by-side layout */
+    flex-direction: row;
+    align-items: flex-start; /* Align items to the top */
     padding: 20px;
     gap: 20px;
 }
 
-.game-header {
+/* Wrapper for main game content (header, hand, actions, deck info) */
+.main-game-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Takes up available space next to preview panel */
+    gap: 20px; /* Spacing between header, hand area, etc. */
+    max-width: 1200px; /* Or adjust as needed */
+}
+
+.game-header { /* Style for the header within the wrapper */
     width: 100%;
-    max-width: 1200px;
 }
 
 .header-panel {
@@ -274,9 +284,7 @@ body {
 
 /* Hand area */
 .hand-area {
-    flex: 1;
     width: 100%;
-    max-width: 1200px;
     display: flex;
     align-items: center;
 }
@@ -333,7 +341,7 @@ body {
 .card.selected {
     transform: translateY(-15px) scale(1.1);
     border-color: #667eea;
-    box-shadow: 
+    box-shadow:
         0 10px 30px rgba(102, 126, 234, 0.5),
         0 0 0 3px rgba(102, 126, 234, 0.3);
     animation: cardSelected 0.3s ease;
@@ -385,7 +393,6 @@ body {
 /* Action area */
 .action-area {
     width: 100%;
-    max-width: 1200px;
 }
 
 .action-panel {
@@ -535,10 +542,12 @@ body {
     font-weight: 700;
     font-size: 1.1rem;
 }
+
 .score-item#round-bonus-item .score-value {
     color: #2ecc71; /* Green color for money */
     font-weight: bold;
 }
+
 .score-item#round-bonus-item .score-label {
     color: #bdc3c7; /* Lighter label for bonus */
 }
@@ -767,45 +776,51 @@ body {
 
 /* Responsive design */
 @media (max-width: 768px) {
+    #game-screen {
+        flex-direction: column; /* Stack preview and main content */
+        align-items: center; /* Center items */
+    }
+    .live-preview-panel {
+        width: 90%; /* Full width on small screens */
+        max-width: 350px;
+        margin-right: 0; /* No margin on the side */
+        margin-bottom: 20px; /* Space below preview panel */
+        order: -1; /* Display preview panel at the top */
+    }
     .game-container {
         padding: 10px;
     }
-    
     .main-menu {
         padding: 40px 30px;
     }
-    
     .game-title {
         font-size: 2.5rem;
     }
-    
     .card {
         width: 60px;
         height: 84px;
         padding: 6px 3px;
     }
-    
     .card-rank,
     .card-rank-bottom {
         font-size: 1rem;
     }
-    
     .card-suit {
         font-size: 1.2rem;
     }
-    
     .action-panel {
         flex-direction: column;
         text-align: center;
     }
-    
     .game-info {
         justify-content: center;
         gap: 15px;
     }
-    
     .info-value {
         font-size: 1.2rem;
+    }
+    .main-game-content-wrapper {
+        width: 100%; /* Ensure main content takes full width */
     }
 }
 
@@ -839,8 +854,6 @@ body {
     100% { transform: scale(1); }
 }
 
-
-
 /* Card sorting animation */
 @keyframes cardSort {
     0% { transform: translateY(0); }
@@ -850,4 +863,59 @@ body {
 
 .sorting {
     animation: cardSort 0.5s ease;
+}
+
+/* Live Score Preview Panel */
+.live-preview-panel {
+    width: 280px; /* Fixed width for the preview panel */
+    padding: 20px;
+    margin-right: 20px; /* Space between preview and main content */
+    color: white;
+    align-self: flex-start; /* Aligns to the top of the flex container */
+    /* position: sticky; top: 20px; */ /* Optional: make it sticky */
+    height: fit-content; /* Adjust height to content */
+}
+
+.live-preview-panel:hover {
+    transform: none; /* Disable hover transform if not desired */
+    background: rgba(255, 255, 255, 0.1); /* Keep background consistent */
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.preview-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 5px rgba(0,0,0,0.2);
+}
+
+.preview-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.preview-label {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.preview-value {
+    font-weight: 600;
+    color: #f093fb; /* Accent color */
+}
+
+.preview-description-text {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 10px;
+    text-align: center;
+    min-height: 30px; /* Reserve space for two lines */
+    line-height: 1.4;
 }
