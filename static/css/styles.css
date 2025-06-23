@@ -43,11 +43,12 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
+    /* Neon grid lines over black background */
     background-image:
-        radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, rgba(255,255,255,0.05) 0%, transparent 50%);
-    background-size: 100px 100px;
-    animation: float 20s ease-in-out infinite;
+        repeating-linear-gradient(0deg , rgba(155,89,182,0.25) 0 2px , transparent 2px 60px),
+        repeating-linear-gradient(90deg, rgba(155,89,182,0.25) 0 2px , transparent 2px 60px);
+    background-size: 60px 60px;
+    animation: float 40s linear infinite;
 }
 
 @keyframes float {
@@ -228,7 +229,7 @@ body {
     font-size: 1.2rem;
 }
 .btn.active-sort {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #4facfe 0%, #2ecc71 100%);
     color: white;
     box-shadow: 0 4px 15px rgba(240, 147, 251, 0.5);
     border-color: rgba(255, 255, 255, 0.5);
@@ -388,20 +389,23 @@ body {
 /* Suit colors */
 .card.hearts .card-rank,
 .card.hearts .card-rank-bottom,
-.card.hearts .card-suit,
+.card.hearts .card-suit {
+    color: #e74c3c; /* RED (unchanged) */
+}
 .card.diamonds .card-rank,
 .card.diamonds .card-rank-bottom,
 .card.diamonds .card-suit {
-    color: #e74c3c;
+    color: #3498db; /* BLUE */
 }
-
 .card.clubs .card-rank,
 .card.clubs .card-rank-bottom,
-.card.clubs .card-suit,
+.card.clubs .card-suit {
+    color: #2ecc71; /* GREEN */
+}
 .card.spades .card-rank,
 .card.spades .card-rank-bottom,
 .card.spades .card-suit {
-    color: #2c3e50;
+    color: #000000; /* LIGHT GREY for contrast */
 }
 
 /* Action area */
@@ -511,9 +515,9 @@ body {
 .hand-type {
     font-size: 2rem;
     font-weight: 700;
-    color: #f093fb;
+    color: #f1c40f; /* YELLOW accent */
     margin-bottom: 10px;
-    text-shadow: 0 2px 15px rgba(240, 147, 251, 0.5);
+    text-shadow: 0 2px 15px rgba(241, 196, 15, 0.5);
 }
 
 .hand-description {
@@ -580,9 +584,9 @@ body {
 .victory-title {
     font-size: 3rem;
     font-weight: 700;
-    color: #f093fb;
+    color: #f1c40f;
     margin-bottom: 20px;
-    text-shadow: 0 4px 20px rgba(240, 147, 251, 0.5);
+    text-shadow: 0 4px 20px rgba(241, 196, 15, 0.5);
     animation: victoryPulse 2s ease-in-out infinite;
 }
 
@@ -727,8 +731,7 @@ body {
 .highscore-rank {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #f093fb;
-    min-width: 40px;
+    color: #4facfe;
 }
 
 .highscore-name {
@@ -1204,3 +1207,75 @@ body {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     color: #fff !important;
 }
+
+#starfield{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:-2;
+}
+
+
+/* 4-colour deck */
+.card.diamonds  .card-rank,
+.card.diamonds  .card-rank-bottom,
+.card.diamonds  .card-suit       { color:#3498db; }
+
+.card.clubs     .card-rank,
+.card.clubs     .card-rank-bottom,
+.card.clubs     .card-suit       { color:#2ecc71; }
+
+.card.spades    .card-rank,
+.card.spades    .card-rank-bottom,
+.card.spades    .card-suit       { color:#000000; }
+
+/* Hi-tech neon backdrop */
+body{background:#000;}
+
+.background{overflow:hidden;}
+.bg-gradient{display:none;}           /* old gradient removed */
+
+.bg-lines{
+    position:absolute;inset:0;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent 0 48px,
+            rgba(160,0,255,.25) 48px 50px
+        );
+    animation:scrollLines 20s linear infinite;
+}
+@keyframes scrollLines{
+    from{background-position:0 0;}
+    to  {background-position:400px 400px;}
+}
+
+.bg-stars{
+    position:absolute;inset:0;
+    background:url("data:image/svg+xml;utf8,\
+        <svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'> \
+        <circle cx='1' cy='1' r='1' fill='white'/>\
+        </svg>") repeat;
+    opacity:.7;
+    animation:rotateStars 60s linear infinite;
+}
+@keyframes rotateStars{
+    from{transform:translateZ(0) rotate(0deg) scale(1);}
+    to  {transform:translateZ(0) rotate(360deg) scale(1.5);}
+}
+
+/* Button accents */
+.btn-primary{
+    background:linear-gradient(135deg,#3498db 0%,#2ecc71 100%);
+}
+.btn-primary:hover{
+    box-shadow:0 8px 25px rgba(52,152,219,.6);
+}
+
+/* New accent colour */
+.preview-value,
+.hand-type,
+.victory-title,
+.highscore-rank     {color:#00e5ff;}

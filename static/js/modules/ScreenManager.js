@@ -94,9 +94,15 @@ class ScreenManager {
                 }
 
                 if (card.suit === 'hearts' || card.suit === 'diamonds') {
-                    miniCardElement.style.color = '#e74c3c';
+                    // Four-color deck
+                    if (card.suit === 'hearts') {
+                        miniCardElement.style.color = '#e74c3c'; // red
+                    } else { // diamonds
+                        miniCardElement.style.color = '#3498db'; // blue
+                    }
                 } else {
-                    miniCardElement.style.color = '#2c3e50';
+                    miniCardElement.style.color =
+                        card.suit === 'clubs' ? '#2ecc71' : '#cccccc'; // green or grey
                 }
                 
                 suitContainers[suit].appendChild(miniCardElement);
