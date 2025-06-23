@@ -14,6 +14,7 @@ class PokerGame {
         this.previewManager = new PreviewManager(this.apiClient, this.cardManager);
         // will hold the exact Card models the user played last
         this.lastPlayedCards = [];
+        this.currentShopCards = []; // To store details of cards currently in the shop
         this.shopRequestInFlight = false;   //  ← new flag
 
         // Initialize event listeners and show startup screen
@@ -403,6 +404,9 @@ class PokerGame {
     updateShopDisplay(shopState) {
         // Update money display
         document.getElementById('shop-money-display').textContent = `$${shopState.money}`;
+
+        // Store current shop cards for logging purposes
+        this.currentShopCards = shopState.shop_cards ? [...shopState.shop_cards] : [];
         
         // Clear existing shop cards
         const shopCardsContainer = document.getElementById('shop-cards');
@@ -484,13 +488,29 @@ class PokerGame {
         this.shopRequestInFlight = true;
         document.getElementById('next-round-btn').disabled = true; // lock N-Round
 
+        // Get card details *before* the API call for logging, using the stored shop cards
+        const boughtCardDetails = this.currentShopCards && this.currentShopCards[cardIndex]
+                                  ? this.currentShopCards[cardIndex]
+                                  : null;
+
         try {
             const data = await this.apiClient.buyCard(this.gameState.sessionId, cardIndex);
             
             if (data.success) {
+                // Update game state *first* so getDeckRemaining() is accurate for logging
                 // Update game state
                 this.gameState.setGameState(data.game_state);
                 
+                // Enhanced logging for purchase confirmation
+                if (boughtCardDetails) {
+                    const cardSuit = boughtCardDetails.suit.charAt(0).toUpperCase() + boughtCardDetails.suit.slice(1);
+                    const cardName = `${this.formatCardRank(boughtCardDetails.rank)} of ${cardSuit}`;
+                    const deckCount = this.gameState.getDeckRemaining();
+                    console.log(`PURCHASE CONFIRMATION: Bought '${cardName}'. Added to deck. Total cards: ${deckCount}`);
+                } else {
+                    console.warn("Could not retrieve bought card details for logging purchase.");
+                }
+
                 // Update shop display
                 const shopCardsContainer = document.getElementById('shop-cards');
                 const cardElements = shopCardsContainer.querySelectorAll('.shop-card');
@@ -540,6 +560,16 @@ class PokerGame {
             console.error('Error proceeding to next round:', error);
             alert('Error proceeding to next round.');
         }
+    }
+
+    // Helper function to format card rank for display names
+    formatCardRank(rank) {
+        const rankMap = {
+            'A': 'Ace', 'K': 'King', 'Q': 'Queen', 'J': 'Jack',
+            '10': '10', '9': '9', '8': '8', '7': '7', '6': '6',
+            '5': '5', '4': '4', '3': '3', '2': '2'
+        };
+        return rankMap[rank] || rank;
     }
 }
 

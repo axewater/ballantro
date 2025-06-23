@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-from .models import GameState, Card, HandResult, HighScore
+from .models import GameState, Card, HandResult, HighScore, Suit, Rank
 from .deck import Deck
 from .poker_evaluator import PokerEvaluator
 import logging
@@ -327,15 +327,12 @@ class GameSession:
                 self.is_victory = True
                 self.is_game_over = True
             else:
-                # Advance to next round
                 # Instead of immediately advancing to next round, we enter shop mode
                 # The actual round advancement happens in proceed_to_next_round
-                logger.info(f"Session {self.session_id}: Round complete. Entering shop before round {self.current_round + 1}.")
+                logger.info(f"Session {self.session_id}: Entering shop for round {self.current_round + 1}. Hand carried over: {[str(c) for c in self.hand]}")
                 
                 # Generate shop cards
                 self.shop_cards = game_engine.generate_shop_cards(3)
-                self._deal_initial_hand()
-                logger.info(f"Session {self.session_id}: New hand for round {self.current_round}: {[str(c) for c in self.hand]}")
         else:
             # Check if game over (max hands reached)
             if self.hands_played >= self.max_hands:
@@ -444,51 +441,58 @@ class GameSession:
         if not self.in_shop:
             raise ValueError("Not currently in shop phase")
         
+        logger.info(f"Session {self.session_id}: Proceeding to Round {self.current_round + 1}. Current hand: {[str(c) for c in self.hand]}. Purchased cards accumulated: {[str(c) for c in self.purchased_cards]}")
+        
         # Advance to next round
         self.current_round += 1
         self.hands_played = 0
         self.draws_used = 0
         self.in_shop = False
-        
-        # Start with a fresh, shuffled deck.
-        self.deck.reset()
 
-        # ------------------------------------------------------------------
-        #  Remove **exact** copies of each card currently in hand
-        # ------------------------------------------------------------------
-        for card_in_hand in self.hand:
+        self.shop_cards.clear() # Clear shop offerings for the new round
+
+        # 1. Create a new, full standard 52-card deck.
+        new_round_draw_pile_cards: List[Card] = []
+        for suit_enum in Suit:
+            for rank_enum in Rank:
+                new_round_draw_pile_cards.append(Card(suit=suit_enum, rank=rank_enum, effects=[]))
+        
+        # 2. Add all cards from self.purchased_cards to this list.
+        #    self.purchased_cards accumulates all cards bought throughout the game.
+        new_round_draw_pile_cards.extend(self.purchased_cards)
+        
+        # 3. The player's current hand (self.hand) was carried through the shop.
+        #    These cards are effectively "out of the deck" for the initial deal of the new round.
+        #    Remove one instance of each card in self.hand from new_round_draw_pile_cards.
+        #    This relies on Card.__eq__ for exact matching (suit, rank, effects).
+        temp_deck_for_removal = list(new_round_draw_pile_cards) # Work on a copy
+        successfully_removed_count = 0
+        for card_in_hand_instance in self.hand:
             try:
-                idx = next(i for i, c in enumerate(self.deck.cards)
-                           if c.suit == card_in_hand.suit and c.rank == card_in_hand.rank)
-                self.deck.cards.pop(idx)
-            except StopIteration:
-                # If not found, nothing to remove (can happen with duplicates)
-                pass
-
-        # ------------------------------------------------------------------
-        #  Duplicates are *explicitly* allowed – simply extend & shuffle.
-        # ------------------------------------------------------------------
-        self.deck.cards.extend(self.purchased_cards)
-        random.shuffle(self.deck.cards)
-        # Clear the queue for the next shopping phase
-        self.purchased_cards.clear()
+                temp_deck_for_removal.remove(card_in_hand_instance) # list.remove uses Card.__eq__
+                successfully_removed_count += 1
+            except ValueError:
+                logger.warning(f"Session {self.session_id}: Card '{str(card_in_hand_instance)}' (effects: {card_in_hand_instance.effects}) from player's hand was not found for removal from the new round's deck.")
         
-        original_count = self.deck.remaining_count()
+        self.deck.cards = temp_deck_for_removal
+        
+        # 4. Shuffle the draw pile.
+        random.shuffle(self.deck.cards)
+        
+        # 5. IMPORTANT: self.purchased_cards is NOT cleared. It persists all purchased cards.
+        
         logger.info(
-            "Session %s: Advancing to round %d. Deck reset (was %d), "
-            "removed %d hand cards – %d cards remain.",
-            self.session_id,
-            self.current_round,
-            original_count,
-            len(self.hand),
-            self.deck.remaining_count(),
+            f"Session {self.session_id}: Prepared deck for Round {self.current_round}. "
+            f"Initial size (52 + {len(self.purchased_cards)} purchased) = {52 + len(self.purchased_cards)}. "
+            f"Removed {successfully_removed_count} cards that were in player's hand. "
+            f"Final draw pile size: {len(self.deck.cards)}. "
+            f"Total distinct purchased cards accumulated: {len(self.purchased_cards)}."
         )
-        logger.info(
-            "Session %s: Hand for round %d: %s",
-            self.session_id,
-            self.current_round,
-            [str(c) for c in self.hand],
-        )
+        
+        # 6. Deal a fresh hand for the new gameplay round from this correctly assembled custom deck.
+        self._deal_initial_hand()
+        
+        logger.info(f"Session {self.session_id}: Dealt new hand for Round {self.current_round}: {[str(c) for c in self.hand]}")
         
         return {
             "game_state": self.get_state().dict()
