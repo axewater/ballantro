@@ -86,7 +86,13 @@ class ScreenManager {
                 miniCardElement.className = 'mini-card';
                 const suitSymbol = this._getSuitSymbol(card.suit);
                 miniCardElement.textContent = `${card.rank}${suitSymbol}`;
-                
+
+                // Mark special cards
+                if (card.effects && card.effects.length > 0) {
+                    miniCardElement.classList.add('special');
+                    miniCardElement.textContent += '✦';
+                }
+
                 if (card.suit === 'hearts' || card.suit === 'diamonds') {
                     miniCardElement.style.color = '#e74c3c';
                 } else {

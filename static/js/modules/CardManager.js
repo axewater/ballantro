@@ -41,6 +41,7 @@ class CardManager {
     createCardElement(card, isSelected = false) {
         const cardElement = document.createElement('div');
         cardElement.className = `card ${card.suit}${isSelected ? ' selected' : ''}`;
+        const hasEffect = card.effects && card.effects.length > 0;
         
         const rankElement = document.createElement('div');
         rankElement.className = 'card-rank';
@@ -52,6 +53,14 @@ class CardManager {
         
         cardElement.appendChild(rankElement);
         cardElement.appendChild(suitElement);
+
+        // 🔆  Special-card overlay
+        if (hasEffect) {
+            const effectIcon = document.createElement('div');
+            effectIcon.className = 'card-effect-icon';
+            effectIcon.textContent = '✦';
+            cardElement.appendChild(effectIcon);
+        }
         
         return cardElement;
     }

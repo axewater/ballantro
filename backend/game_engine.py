@@ -399,6 +399,17 @@ class GameSession:
         
         # Get the card to buy
         card_to_buy = self.shop_cards[card_index]
+
+        # Deduct money *before* mutating state so UI reflects it immediately
+        self.money -= self.shop_card_cost
+
+        # ------------------------------------------------------------------
+        #  Deck-builder rule: **duplicates are allowed**.                  
+        #  Always add the purchased card to the current draw pile so the  
+        #  player can potentially pick it up immediately.                  
+        # ------------------------------------------------------------------
+        self.deck.cards.append(card_to_buy)
+        random.shuffle(self.deck.cards)   # Light shuffle keeps randomness
         
         # Queue the bought card to be shuffled into the deck for the NEXT round
         # (do **not** add it to the hand directly – it should behave like a
@@ -408,7 +419,14 @@ class GameSession:
         # Remove card from shop
         self.shop_cards.pop(card_index)
         
-        logger.info(f"Session {self.session_id}: Bought card {str(card_to_buy)} for ${self.shop_card_cost}. Money remaining: ${self.money}")
+        logger.info(
+            "Session %s: Bought card %s for $%d. Money remaining: $%d. Deck now has %d cards.",
+            self.session_id,
+            str(card_to_buy),
+            self.shop_card_cost,
+            self.money,
+            self.deck.remaining_count(),
+        )
         
         return {"game_state": self.get_state().dict()}
     
@@ -436,19 +454,21 @@ class GameSession:
         self.deck.reset()
 
         # ------------------------------------------------------------------
-        #  1)  Remove any cards that are already in the player's HAND
+        #  Remove **exact** copies of each card currently in hand
         # ------------------------------------------------------------------
-        hand_identity = {(c.suit, c.rank) for c in self.hand}
-        self.deck.cards = [c for c in self.deck.cards if (c.suit, c.rank) not in hand_identity]
+        for card_in_hand in self.hand:
+            try:
+                idx = next(i for i, c in enumerate(self.deck.cards)
+                           if c.suit == card_in_hand.suit and c.rank == card_in_hand.rank)
+                self.deck.cards.pop(idx)
+            except StopIteration:
+                # If not found, nothing to remove (can happen with duplicates)
+                pass
 
         # ------------------------------------------------------------------
-        #  2)  Shuffle in cards the player bought during the previous shop
+        #  Duplicates are *explicitly* allowed – simply extend & shuffle.
         # ------------------------------------------------------------------
-        existing_ids = {(c.suit, c.rank) for c in self.deck.cards}
-        for bought in self.purchased_cards:
-            if (bought.suit, bought.rank) not in existing_ids:
-                self.deck.cards.append(bought)
-                existing_ids.add((bought.suit, bought.rank))
+        self.deck.cards.extend(self.purchased_cards)
         random.shuffle(self.deck.cards)
         # Clear the queue for the next shopping phase
         self.purchased_cards.clear()
@@ -460,7 +480,7 @@ class GameSession:
             self.session_id,
             self.current_round,
             original_count,
-            len(hand_identity),
+            len(self.hand),
             self.deck.remaining_count(),
         )
         logger.info(

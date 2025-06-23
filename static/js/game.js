@@ -438,6 +438,14 @@ class PokerGame {
         priceElement.className = 'card-price';
         priceElement.textContent = '$3';
         
+        // Special-card overlay
+        if (card.effects && card.effects.length > 0) {
+            const effectIcon = document.createElement('div');
+            effectIcon.className = 'card-effect-icon';
+            effectIcon.textContent = '✦';
+            cardElement.appendChild(effectIcon);
+        }
+
         cardElement.appendChild(rankElement);
         cardElement.appendChild(suitElement);
         cardElement.appendChild(rankBottomElement);
