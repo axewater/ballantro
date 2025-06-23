@@ -58,6 +58,14 @@ class GameState {
         return this.gameState?.hand || [];
     }
 
+    isInShop() {
+        return this.gameState?.in_shop || false;
+    }
+
+    getShopCards() {
+        return this.gameState?.shop_cards || [];
+    }
+
     isGameOver() {
         return this.gameState?.is_game_over || false;
     }

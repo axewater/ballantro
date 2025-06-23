@@ -265,6 +265,48 @@
             </div>
         </div>
 
+        <!-- Shop Screen -->
+        <div id="shop-screen" class="screen">
+            <div class="glass-panel shop-panel">
+                <div class="shop-header">
+                    <h2 class="shop-title">Card Shop</h2>
+                    <p class="shop-subtitle">Buy cards for the next round!</p>
+                    <div class="shop-money">
+                        <span class="money-label">Your Money:</span>
+                        <span id="shop-money-display" class="money-value">$0</span>
+                    </div>
+                </div>
+                
+                <div class="shop-cards-container">
+                    <div id="shop-cards" class="shop-cards">
+                        <!-- Shop cards will be dynamically added here -->
+                    </div>
+                </div>
+                
+                <div class="shop-info">
+                    <div class="shop-info-item">
+                        <span class="info-icon">💰</span>
+                        <span class="info-text">Card Cost: $3</span>
+                    </div>
+                    <div class="shop-info-item">
+                        <span class="info-icon">🔄</span>
+                        <span class="info-text">Reroll Cost: $1</span>
+                    </div>
+                </div>
+                
+                <div class="shop-actions">
+                    <button id="reroll-shop-btn" class="btn btn-secondary">
+                        <span class="btn-icon">🔄</span>
+                        Reroll Cards ($1)
+                    </button>
+                    <button id="next-round-btn" class="btn btn-primary">
+                        <span class="btn-icon">➡️</span>
+                        Next Round
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Name Input Modal -->
         <div id="name-modal" class="modal">
             <div class="modal-content glass-panel">

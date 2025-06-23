@@ -9,6 +9,7 @@ class UIUpdater {
             handsPlayed: document.getElementById('hands-played'),
             maxHands: document.getElementById('max-hands'),
             drawsUsed: document.getElementById('draws-used'),
+            shopMoneyDisplay: document.getElementById('shop-money-display'),
             maxDraws: document.getElementById('max-draws'),
             deckRemaining: document.getElementById('deck-remaining'),
             selectionCount: document.getElementById('selection-count'),
@@ -28,6 +29,7 @@ class UIUpdater {
         this.elements.totalScore.textContent = gameState.total_score;
         this.elements.playerMoney.textContent = `$${gameState.money}`;
         this.elements.roundTarget.textContent = gameState.round_target;
+        if (this.elements.shopMoneyDisplay) this.elements.shopMoneyDisplay.textContent = `$${gameState.money}`;
         this.elements.handsPlayed.textContent = gameState.hands_played;
         this.elements.maxHands.textContent = gameState.max_hands;
         this.elements.drawsUsed.textContent = gameState.draws_used;

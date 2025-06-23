@@ -457,6 +457,62 @@ class GameAnimations {
         
         requestAnimationFrame(fall);
     }
+
+    // Shop card animations
+    animateShopCards() {
+        const shopCards = document.querySelectorAll('.shop-card');
+        
+        shopCards.forEach((card, index) => {
+            // Initial state
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(50px) scale(0.8)';
+            
+            // Animate in with delay
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0) scale(1)';
+                
+                // Add hover effect after animation
+                setTimeout(() => {
+                    card.classList.add('animated-in');
+                }, 600);
+            }, index * 200);
+        });
+    }
+    
+    // Card purchase animation
+    animateCardPurchase(cardElement) {
+        return new Promise((resolve) => {
+            // Clone the card for animation
+            const cardRect = cardElement.getBoundingClientRect();
+            const clone = cardElement.cloneNode(true);
+            
+            // Style the clone for animation
+            clone.style.position = 'fixed';
+            clone.style.top = `${cardRect.top}px`;
+            clone.style.left = `${cardRect.left}px`;
+            clone.style.width = `${cardRect.width}px`;
+            clone.style.height = `${cardRect.height}px`;
+            clone.style.zIndex = '1000';
+            clone.style.transition = 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            
+            // Add to body
+            document.body.appendChild(clone);
+            
+            // Animate to hand area
+            setTimeout(() => {
+                clone.style.transform = 'scale(0.6) rotate(720deg)';
+                clone.style.opacity = '0';
+                
+                // Remove clone after animation
+                setTimeout(() => {
+                    clone.remove();
+                    resolve();
+                }, 800);
+            }, 50);
+        });
+    }
 }
 
 // Add CSS animations
@@ -495,4 +551,3 @@ document.head.appendChild(style);
 
 // Initialize animations
 window.gameAnimations = new GameAnimations();
-

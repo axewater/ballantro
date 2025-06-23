@@ -96,6 +96,52 @@ class ApiClient {
             throw error;
         }
     }
+
+    async getShopState(sessionId) {
+        try {
+            const response = await fetch(`/api/shop/${sessionId}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching shop state:', error);
+            throw error;
+        }
+    }
+
+    async rerollShop(sessionId) {
+        try {
+            const response = await fetch(`/api/shop/${sessionId}/reroll`, {
+                method: 'POST'
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error rerolling shop:', error);
+            throw error;
+        }
+    }
+
+    async buyCard(sessionId, cardIndex) {
+        try {
+            const response = await fetch(`/api/shop/${sessionId}/buy/${cardIndex}`, {
+                method: 'POST'
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error buying card:', error);
+            throw error;
+        }
+    }
+
+    async proceedToNextRound(sessionId) {
+        try {
+            const response = await fetch(`/api/shop/${sessionId}/next_round`, {
+                method: 'POST'
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error proceeding to next round:', error);
+            throw error;
+        }
+    }
 }
 
 // Export for use in other modules

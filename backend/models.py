@@ -67,6 +67,8 @@ class GameState(BaseModel):
     money: int = 0
     hand: List[Card]
     deck_remaining: int
+    in_shop: bool = False
+    shop_cards: List[Card] = []
     round_target: int
     max_hands: int = 4
     max_hand_size: int = 8

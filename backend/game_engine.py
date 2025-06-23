@@ -7,6 +7,7 @@ from .models import GameState, Card, HandResult, HighScore
 from .deck import Deck
 from .poker_evaluator import PokerEvaluator
 import logging
+import random
 
 # Configure basic logging for the server
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - SERVER: %(levelname)s - %(message)s')
@@ -95,6 +96,53 @@ class GameEngine:
         except Exception as e:
             logger.error(f"Error saving highscores: {e}", exc_info=True)
 
+    def get_shop_state(self, session_id: str) -> Dict:
+        """Get the current shop state for a session"""
+        logger.info(f"Session {session_id}: Get shop state request.")
+        session = self._get_session(session_id)
+        return session.get_shop_state()
+    
+    def reroll_shop(self, session_id: str) -> Dict:
+        """Reroll the shop cards for $1"""
+        logger.info(f"Session {session_id}: Reroll shop request.")
+        session = self._get_session(session_id)
+        return session.reroll_shop()
+    
+    def buy_card(self, session_id: str, card_index: int) -> Dict:
+        """Buy a card from the shop for $3"""
+        logger.info(f"Session {session_id}: Buy card request for index {card_index}.")
+        session = self._get_session(session_id)
+        return session.buy_card(card_index)
+    
+    def proceed_to_next_round(self, session_id: str) -> Dict:
+        """Proceed to the next round after shopping"""
+        logger.info(f"Session {session_id}: Proceed to next round request.")
+        session = self._get_session(session_id)
+        return session.proceed_to_next_round()
+
+    def _generate_random_card(self) -> Card:
+        """Generate a random card for the shop"""
+        from .models import Suit, Rank
+        
+        # Get all possible suits and ranks
+        all_suits = list(Suit)
+        all_ranks = list(Rank)
+        
+        # Randomly select a suit and rank
+        random_suit = random.choice(all_suits)
+        random_rank = random.choice(all_ranks)
+        
+        # Create and return a new card
+        return Card(suit=random_suit, rank=random_rank)
+    
+    def generate_shop_cards(self, count: int = 3) -> List[Card]:
+        """Generate random cards for the shop"""
+        shop_cards = []
+        for _ in range(count):
+            shop_cards.append(self._generate_random_card())
+        
+        return shop_cards
+
 class GameSession:
     """Individual game session managing one player's game"""
     
@@ -112,6 +160,12 @@ class GameSession:
         self.hand: List[Card] = []
         self.is_game_over = False
         self.is_victory = False
+
+        # Shop state
+        self.in_shop = False
+        self.shop_cards = []
+        self.shop_reroll_cost = 1
+        self.shop_card_cost = 3
         
         # Game configuration
         self.max_hands = 4
@@ -135,7 +189,9 @@ class GameSession:
             deck_remaining=self.deck.remaining_count(),
             round_target=self.ROUND_TARGETS.get(self.current_round, 0),
             max_hands=self.max_hands,
-            max_hand_size=self.max_hand_size,
+            max_hand_size=self.max_hand_size, 
+            in_shop=self.in_shop,
+            shop_cards=self.shop_cards.copy() if self.shop_cards else [],
             max_draws=self.max_draws,
             is_game_over=self.is_game_over,
             is_victory=self.is_victory
@@ -252,6 +308,7 @@ class GameSession:
             money_awarded_this_round = 5 + (self.current_round - 1)
             self.money += money_awarded_this_round
             logger.info(f"Session {self.session_id}: Round {self.current_round} complete. Money awarded: ${money_awarded_this_round}. Total money: ${self.money}")
+            self.in_shop = True
 
             if self.current_round >= 3:
                 # Victory!
@@ -259,12 +316,12 @@ class GameSession:
                 self.is_game_over = True
             else:
                 # Advance to next round
-                self.current_round += 1
-                self.hands_played = 0
-                self.draws_used = 0
-                # Reset deck and deal new hand
-                self.deck.reset()
-                logger.info(f"Session {self.session_id}: Advancing to round {self.current_round}. Resetting deck and hand.")
+                # Instead of immediately advancing to next round, we enter shop mode
+                # The actual round advancement happens in proceed_to_next_round
+                logger.info(f"Session {self.session_id}: Round complete. Entering shop before round {self.current_round + 1}.")
+                
+                # Generate shop cards
+                self.shop_cards = game_engine.generate_shop_cards(3)
                 self._deal_initial_hand()
                 logger.info(f"Session {self.session_id}: New hand for round {self.current_round}: {[str(c) for c in self.hand]}")
         else:
@@ -284,6 +341,67 @@ class GameSession:
             "money_awarded_this_round": money_awarded_this_round
         }
     
+    def get_shop_state(self) -> Dict:
+        """Get the current shop state"""
+        if not self.in_shop:
+            raise ValueError("Not currently in shop phase")
+        
+        return {
+            "shop_cards": [card.dict() for card in self.shop_cards],
+            "money": self.money,
+            "reroll_cost": self.shop_reroll_cost,
+            "card_cost": self.shop_card_cost,
+            "next_round": self.current_round + 1
+        }
+    
+    def reroll_shop(self) -> Dict:
+        """Reroll the shop cards for $1"""
+        if not self.in_shop:
+            raise ValueError("Not currently in shop phase")
+        
+        if self.money < self.shop_reroll_cost:
+            raise ValueError(f"Not enough money. Need ${self.shop_reroll_cost}, have ${self.money}")
+        
+        # Deduct reroll cost
+        self.money -= self.shop_reroll_cost
+        logger.info(f"Session {self.session_id}: Rerolled shop cards for ${self.shop_reroll_cost}. Money remaining: ${self.money}")
+        
+        # Generate new shop cards
+        self.shop_cards = game_engine.generate_shop_cards(3)
+        
+        return {
+            "shop_cards": [card.dict() for card in self.shop_cards],
+            "money": self.money
+        }
+    
+    def buy_card(self, card_index: int) -> Dict:
+        """Buy a card from the shop for $3"""
+        if not self.in_shop:
+            raise ValueError("Not currently in shop phase")
+        
+        if card_index < 0 or card_index >= len(self.shop_cards):
+            raise ValueError(f"Invalid card index: {card_index}")
+        
+        if self.money < self.shop_card_cost:
+            raise ValueError(f"Not enough money. Need ${self.shop_card_cost}, have ${self.money}")
+        
+        # Get the card to buy
+        card_to_buy = self.shop_cards[card_index]
+        
+        # Deduct card cost
+        self.money -= self.shop_card_cost
+        
+        # Add card to hand
+        self.hand.append(card_to_buy)
+        logger.info(f"Session {self.session_id}: Bought card {str(card_to_buy)} for ${self.shop_card_cost}. Money remaining: ${self.money}")
+        
+        # Remove card from shop
+        self.shop_cards.pop(card_index)
+        
+        return {
+            "game_state": self.get_state().dict()
+        }
+    
     def _deal_initial_hand(self):
         """Deal initial hand of cards"""
         self.hand = self.deck.draw(self.max_hand_size)
@@ -292,3 +410,26 @@ class GameSession:
         """Returns a copy of the cards currently in the deck."""
         logger.info(f"Session {self.session_id}: Fetching remaining deck cards. Count: {len(self.deck.cards)}")
         return self.deck.cards.copy()
+    
+    def proceed_to_next_round(self) -> Dict:
+        """Proceed to the next round after shopping"""
+        if not self.in_shop:
+            raise ValueError("Not currently in shop phase")
+        
+        # Advance to next round
+        self.current_round += 1
+        self.hands_played = 0
+        self.draws_used = 0
+        self.in_shop = False
+        
+        # Reset deck but keep the hand (which may include purchased cards)
+        self.deck.reset()
+        logger.info(f"Session {self.session_id}: Advancing to round {self.current_round}. Resetting deck.")
+        logger.info(f"Session {self.session_id}: Hand for round {self.current_round}: {[str(c) for c in self.hand]}")
+        
+        return {
+            "game_state": self.get_state().dict()
+        }
+
+# Create a global instance of the game engine
+game_engine = GameEngine()

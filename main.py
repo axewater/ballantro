@@ -140,5 +140,57 @@ async def get_remaining_deck(session_id: str):
         logger.error(f"API Error: /api/remaining_deck/{session_id} - {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/shop/{session_id}")
+async def get_shop_state(session_id: str):
+    """Get the current shop state for a session"""
+    logger.info(f"API: /api/shop/{session_id} called")
+    try:
+        shop_state = game_engine.get_shop_state(session_id)
+        return {"success": True, "shop_state": shop_state}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"API Error: /api/shop/{session_id} - {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/shop/{session_id}/reroll")
+async def reroll_shop(session_id: str):
+    """Reroll the shop cards for $1"""
+    logger.info(f"API: /api/shop/{session_id}/reroll called")
+    try:
+        result = game_engine.reroll_shop(session_id)
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"API Error: /api/shop/{session_id}/reroll - {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/shop/{session_id}/buy/{card_index}")
+async def buy_card(session_id: str, card_index: int):
+    """Buy a card from the shop for $3"""
+    logger.info(f"API: /api/shop/{session_id}/buy/{card_index} called")
+    try:
+        result = game_engine.buy_card(session_id, card_index)
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"API Error: /api/shop/{session_id}/buy/{card_index} - {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/shop/{session_id}/next_round")
+async def proceed_to_next_round(session_id: str):
+    """Proceed to the next round after shopping"""
+    logger.info(f"API: /api/shop/{session_id}/next_round called")
+    try:
+        result = game_engine.proceed_to_next_round(session_id)
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"API Error: /api/shop/{session_id}/next_round - {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

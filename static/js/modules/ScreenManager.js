@@ -1,6 +1,7 @@
 class ScreenManager {
     constructor() {
         this.currentScreen = 'startup';
+        this.previousScreen = null;
     }
 
     showScreen(screenName) {
@@ -9,6 +10,7 @@ class ScreenManager {
             screen.classList.remove('active');
         });
         
+        this.previousScreen = this.currentScreen;
         // Show the requested screen
         document.getElementById(`${screenName}-screen`).classList.add('active');
         this.currentScreen = screenName;
@@ -16,6 +18,10 @@ class ScreenManager {
 
     getCurrentScreen() {
         return this.currentScreen;
+    }
+
+    getPreviousScreen() {
+        return this.previousScreen;
     }
 
     showNameModal() {
