@@ -14,7 +14,9 @@ class UIUpdater {
             selectionCount: document.getElementById('selection-count'),
             drawCardsBtn: document.getElementById('draw-cards-btn'),
             playHandBtn: document.getElementById('play-hand-btn'),
-            playerHand: document.getElementById('player-hand')
+            playerHand: document.getElementById('player-hand'),
+            sortRankBtn: document.getElementById('sort-rank-btn'),
+            sortSuitBtn: document.getElementById('sort-suit-btn')
         };
     }
 
@@ -151,6 +153,19 @@ class UIUpdater {
             .split('_')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
+    }
+
+    updateSortButtonAppearance(activeSortType) {
+        if (activeSortType === 'rank') {
+            this.elements.sortRankBtn.classList.add('active-sort');
+            this.elements.sortSuitBtn.classList.remove('active-sort');
+        } else if (activeSortType === 'suit') {
+            this.elements.sortRankBtn.classList.remove('active-sort');
+            this.elements.sortSuitBtn.classList.add('active-sort');
+        } else {
+            this.elements.sortRankBtn.classList.remove('active-sort');
+            this.elements.sortSuitBtn.classList.remove('active-sort');
+        }
     }
 }
 

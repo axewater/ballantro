@@ -68,10 +68,13 @@ class PokerGame {
             const data = await this.apiClient.newGame();
             if (data.success) {
                 this.gameState.setGameState(data.game_state);
+                this.cardManager.resetSortState(); // Reset active sort
                 this.cardManager.clearSelection();
                 this.updateGameDisplay();
                 this.screenManager.showScreen('game');
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+                this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType); // Update button visuals
+
                 this.animateCardDraw();
             } else {
                 console.error('Failed to start new game:', data);
@@ -96,9 +99,14 @@ class PokerGame {
             if (data.success) {
                 this.gameState.setGameState(data.game_state);
                 this.cardManager.clearSelection();
-                this.updateGameDisplay();
-                this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-                this.animateCardDraw();
+                
+                // Apply active sort if one is set, then update display and animate
+                await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
+                    this.updateGameDisplay(); // This will re-render hand if sorted
+                    this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+                    this.animateCardDraw(); // Animate new/sorted hand
+                });
+
             } else {
                 console.error('Failed to draw cards:', data);
                 alert(data.message || 'Failed to draw cards.');
@@ -241,18 +249,25 @@ class PokerGame {
                 window.gameAnimations.queueAnimation(() => 
                     window.gameAnimations.animateRoundTransition(this.gameState.getCurrentRound())
                 ).then(() => {
-                    this.cardManager.clearSelection();
-                    this.updateGameDisplay();
-                    this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-                    this.screenManager.showScreen('game');
+                    this.finalizeHandUpdateAndDisplay();
                 });
             } else {
-                this.cardManager.clearSelection();
-                this.updateGameDisplay();
-                this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-                this.screenManager.showScreen('game');
+                this.finalizeHandUpdateAndDisplay();
             }
         }
+    }
+
+    async finalizeHandUpdateAndDisplay() {
+        this.cardManager.clearSelection();
+        // Apply active sort before updating the display
+        await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
+            this.updateGameDisplay(); // This will re-render hand if sorted
+            this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+            this.screenManager.showScreen('game');
+            // If new cards were dealt (e.g. after playing a hand), animate them
+            // This might need a flag if we only want to animate on actual new cards vs just sort
+            this.animateCardDraw(); 
+        });
     }
 
     updateGameDisplay() {
@@ -280,21 +295,23 @@ class PokerGame {
     }
 
     async sortCardsByRank() {
+        // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsByRank(this.gameState.gameState, () => {
             this.uiUpdater.updateButtonStates(this.gameState.gameState, this.cardManager.getSelectedCount());
             this.uiUpdater.elements.selectionCount.textContent = this.cardManager.getSelectedCount();
             this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-        });
-        this.cardManager.setSortButtonsDisabled(false);
+            // No need to call setSortButtonsDisabled(false) here, CardManager handles it.
+        }, this.uiUpdater);
     }
 
     async sortCardsBySuit() {
+        // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsBySuit(this.gameState.gameState, () => {
             this.uiUpdater.updateButtonStates(this.gameState.gameState, this.cardManager.getSelectedCount());
             this.uiUpdater.elements.selectionCount.textContent = this.cardManager.getSelectedCount();
             this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-        });
-        this.cardManager.setSortButtonsDisabled(false);
+            // No need to call setSortButtonsDisabled(false) here, CardManager handles it.
+        }, this.uiUpdater);
     }
 
     animateCardDraw() {

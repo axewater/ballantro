@@ -2,6 +2,7 @@ class CardManager {
     constructor() {
         this.selectedCards = new Set();
         this.isSorting = false;
+        this.activeSortType = null; // 'rank', 'suit', or null
         
         // Define order for sorting cards
         this.RANK_ORDER_MAP = { 
@@ -71,29 +72,59 @@ class CardManager {
         return this.selectedCards.size;
     }
 
-    async sortCardsByRank(gameState, onSortComplete) {
+    async sortCardsByRank(gameState, onSortComplete, uiUpdater) {
         if (this.isSorting || !gameState.hand || gameState.hand.length < 2) return;
         
         this.isSorting = true;
+        this.setSortButtonsDisabled(true);
+
+        if (this.activeSortType === 'rank') {
+            this.activeSortType = null; // Toggle off
+            // If toggling off, we don't re-sort, just update button appearance
+            // The hand remains as is or as per last sort.
+            // Or, we could revert to an "unsorted" state if desired, but that's more complex.
+            // For now, toggling off just deactivates auto-sort.
+        } else {
+            this.activeSortType = 'rank';
+            try {
+                const sortResult = this._calculateSort(gameState.hand, 'rank');
+                await this._applySortAnimation(sortResult, gameState, onSortComplete);
+            } finally {
+                // isSorting will be set to false by _applySortAnimation or here
+            }
+        }
         
-        try {
-            const sortResult = this._calculateSort(gameState.hand, 'rank');
-            await this._applySortAnimation(sortResult, gameState, onSortComplete);
-        } finally {
-            this.isSorting = false;
+        uiUpdater.updateSortButtonAppearance(this.activeSortType);
+        this.isSorting = false;
+        this.setSortButtonsDisabled(false);
+        if (onSortComplete && this.activeSortType === 'rank') { // only call if sort actually happened
+            onSortComplete();
         }
     }
 
-    async sortCardsBySuit(gameState, onSortComplete) {
+    async sortCardsBySuit(gameState, onSortComplete, uiUpdater) {
         if (this.isSorting || !gameState.hand || gameState.hand.length < 2) return;
         
         this.isSorting = true;
+        this.setSortButtonsDisabled(true);
+
+        if (this.activeSortType === 'suit') {
+            this.activeSortType = null; // Toggle off
+        } else {
+            this.activeSortType = 'suit';
+            try {
+                const sortResult = this._calculateSort(gameState.hand, 'suit');
+                await this._applySortAnimation(sortResult, gameState, onSortComplete);
+            } finally {
+                // isSorting will be set to false by _applySortAnimation or here
+            }
+        }
         
-        try {
-            const sortResult = this._calculateSort(gameState.hand, 'suit');
-            await this._applySortAnimation(sortResult, gameState, onSortComplete);
-        } finally {
-            this.isSorting = false;
+        uiUpdater.updateSortButtonAppearance(this.activeSortType);
+        this.isSorting = false;
+        this.setSortButtonsDisabled(false);
+        if (onSortComplete && this.activeSortType === 'suit') { // only call if sort actually happened
+            onSortComplete();
         }
     }
 
@@ -129,6 +160,7 @@ class CardManager {
 
     async _applySortAnimation(sortResult, gameState, onSortComplete) {
         const cardContainer = document.getElementById('player-hand');
+        if (!cardContainer) return; // Guard against missing element
         const currentCardElements = Array.from(cardContainer.children);
 
         // Lift cards
@@ -183,11 +215,33 @@ class CardManager {
         if (onSortComplete) {
             onSortComplete();
         }
+        this.isSorting = false; // Ensure isSorting is reset
     }
 
     setSortButtonsDisabled(disabled) {
         document.getElementById('sort-rank-btn').disabled = disabled;
         document.getElementById('sort-suit-btn').disabled = disabled;
+    }
+
+    async applyActiveSort(gameState, onSortComplete) {
+        if (this.isSorting || !this.activeSortType || !gameState.hand || gameState.hand.length < 2) {
+            if (onSortComplete) onSortComplete(); // Ensure callback is called even if no sort happens
+            return;
+        }
+
+        this.isSorting = true;
+        this.setSortButtonsDisabled(true);
+        try {
+            const sortResult = this._calculateSort(gameState.hand, this.activeSortType);
+            await this._applySortAnimation(sortResult, gameState, onSortComplete);
+        } finally {
+            this.isSorting = false;
+            this.setSortButtonsDisabled(false);
+        }
+    }
+
+    resetSortState() {
+        this.activeSortType = null;
     }
 }
 
