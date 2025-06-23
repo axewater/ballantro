@@ -5,11 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import uvicorn
 import os
+import logging
 
 from backend.game_engine import GameEngine
 from backend.models import GameAction, GameState, Card
 
 app = FastAPI(title="Poker Game", description="Single-player poker card game")
+
+# Configure basic logging for the FastAPI app if not already done by game_engine
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - SERVER API: %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Enable CORS for all origins
 app.add_middleware(
@@ -39,72 +44,92 @@ async def new_game():
     """Start a new game session"""
     try:
         game_state = game_engine.new_game()
+        logger.info(f"API: New game created. Session ID: {game_state.session_id}. Initial hand: {[str(c) for c in game_state.hand]}")
         return {"success": True, "game_state": game_state.dict()}
     except Exception as e:
+        logger.error(f"API Error: /api/new_game - {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/draw_cards")
 async def draw_cards(action: GameAction):
     """Draw new cards by discarding selected ones"""
+    logger.info(f"API: /api/draw_cards called for session {action.session_id} with cards {action.selected_cards}")
     try:
         game_state = game_engine.draw_cards(action.session_id, action.selected_cards)
+        logger.info(f"API: /api/draw_cards response for session {action.session_id}. New hand: {[str(c) for c in game_state.hand]}")
         return {"success": True, "game_state": game_state.dict()}
     except Exception as e:
+        logger.error(f"API Error: /api/draw_cards - {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/play_hand")
 async def play_hand(action: GameAction):
     """Play the selected cards and calculate score"""
+    logger.info(f"API: /api/play_hand called for session {action.session_id} with cards {action.selected_cards}")
     try:
         result = game_engine.play_hand(action.session_id, action.selected_cards)
+        logger.info(f"API: /api/play_hand response for session {action.session_id}. Result hand: {[str(c) for c in result['game_state']['hand']]}. Hand type: {result['hand_result']['hand_type']}")
         return {"success": True, **result}
     except Exception as e:
+        logger.error(f"API Error: /api/play_hand - {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/game_state/{session_id}")
 async def get_game_state(session_id: str):
     """Get current game state"""
+    logger.info(f"API: /api/game_state/{session_id} called")
     try:
         game_state = game_engine.get_game_state(session_id)
+        logger.info(f"API: /api/game_state/{session_id} response. Current hand: {[str(c) for c in game_state.hand]}")
         return {"success": True, "game_state": game_state.dict()}
     except Exception as e:
+        logger.error(f"API Error: /api/game_state/{session_id} - {str(e)}", exc_info=True)
         raise HTTPException(status_code=404, detail=str(e))
 
 @app.post("/api/save_score")
 async def save_score(score_data: dict):
     """Save player score to highscores"""
+    logger.info(f"API: /api/save_score called with data: {score_data}")
     try:
         result = game_engine.save_score(score_data["name"], score_data["score"])
         return {"success": True, "highscores": result}
     except Exception as e:
+        logger.error(f"API Error: /api/save_score - {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/highscores")
 async def get_highscores():
     """Get top highscores"""
+    logger.info(f"API: /api/highscores called")
     try:
         highscores = game_engine.get_highscores()
         return {"success": True, "highscores": highscores}
     except Exception as e:
+        logger.error(f"API Error: /api/highscores - {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/preview_hand")
 async def preview_hand(cards: list[Card]):
     """Evaluate a partial hand for live preview"""
+    logger.info(f"API: /api/preview_hand called with cards: {[str(c) for c in cards]}")
     try:
         if not cards: # Handle empty selection
+            logger.info(f"API: /api/preview_hand - empty card list, returning no preview.")
             return {"success": True, "preview": None}
         # The PokerEvaluator needs to be imported or accessed.
         # Assuming it's accessible via game_engine or directly.
         from backend.poker_evaluator import PokerEvaluator # Direct import for simplicity here
         preview_result = PokerEvaluator.evaluate_preview_hand(cards)
+        logger.info(f"API: /api/preview_hand response: {preview_result}")
         return {"success": True, "preview": preview_result}
     except Exception as e:
+        logger.error(f"API Error: /api/preview_hand - {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/remaining_deck/{session_id}")
 async def get_remaining_deck(session_id: str):
     """Get the list of cards remaining in the deck for a session"""
+    logger.info(f"API: /api/remaining_deck/{session_id} called")
     try:
         session = game_engine._get_session(session_id) # Access session directly
         remaining_cards = session.get_remaining_deck_cards()
@@ -112,6 +137,7 @@ async def get_remaining_deck(session_id: str):
     except ValueError as e: # Session not found
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        logger.error(f"API Error: /api/remaining_deck/{session_id} - {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

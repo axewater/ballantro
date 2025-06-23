@@ -1,3 +1,8 @@
+function logClientHand(label, handArray) {
+    const handStr = handArray && Array.isArray(handArray) ? handArray.map(card => `${card.rank}${card.suit.charAt(0).toUpperCase()}`).join(', ') : 'N/A';
+    console.log(`CLIENT: ${label} [${handStr}] (Count: ${handArray ? handArray.length : 0})`);
+}
+
 class PokerGame {
     constructor() {
         // Initialize all modules
@@ -67,6 +72,7 @@ class PokerGame {
         try {
             const data = await this.apiClient.newGame();
             if (data.success) {
+                console.log("CLIENT: New game started. Initial game state received:", data.game_state);
                 this.gameState.setGameState(data.game_state);
                 this.cardManager.resetSortState(); // Reset active sort
                 this.cardManager.clearSelection();
@@ -74,6 +80,7 @@ class PokerGame {
                 this.screenManager.showScreen('game');
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType); // Update button visuals
+                logClientHand("Initial hand dealt:", this.gameState.getHand());
 
                 this.animateCardDraw();
             } else {
@@ -91,16 +98,20 @@ class PokerGame {
             return;
         }
 
+        logClientHand("Hand BEFORE draw request:", this.gameState.getHand());
+        console.log("CLIENT: Selected card indices for discard:", this.cardManager.getSelectedCards());
         try {
             const data = await this.apiClient.drawCards(
                 this.gameState.sessionId, 
                 this.cardManager.getSelectedCards()
             );
             if (data.success) {
+                console.log("CLIENT: Draw cards response received. Updated game state:", data.game_state);
                 this.gameState.setGameState(data.game_state);
                 this.cardManager.clearSelection();
                 
                 // Apply active sort if one is set, then update display and animate
+                logClientHand("Hand AFTER draw response (before potential sort):", this.gameState.getHand());
                 await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
                     this.updateGameDisplay(); // This will re-render hand if sorted
                     this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
@@ -126,6 +137,8 @@ class PokerGame {
         // capture the selected card-models _before_ state is reset
         const selIdx = this.cardManager.getSelectedCards();
         const current = this.gameState.getHand();
+        logClientHand("Hand BEFORE play hand request:", current);
+        console.log("CLIENT: Selected card indices for play:", selIdx);
         this.lastPlayedCards = selIdx.map(i => current[i]);
 
         try {
@@ -134,8 +147,10 @@ class PokerGame {
                 selIdx
             );
             if (data.success) {
+                console.log("CLIENT: Play hand response received. Game state:", data.game_state, "Hand result:", data.hand_result);
                 this.gameState.setGameState(data.game_state);
                 this.gameState.setHandResult(data.hand_result, data.round_complete, data.money_awarded_this_round);
+                logClientHand("Hand AFTER play hand response (new hand dealt):", this.gameState.getHand());
                 this.showScoringScreen();
             } else {
                 console.error('Failed to play hand:', data);
@@ -259,25 +274,30 @@ class PokerGame {
 
     async finalizeHandUpdateAndDisplay() {
         this.cardManager.clearSelection();
+        logClientHand("Hand in finalizeHandUpdateAndDisplay (before active sort):", this.gameState.getHand());
         // Apply active sort before updating the display
         await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
+            logClientHand("Hand in finalizeHandUpdateAndDisplay (after active sort, before display):", this.gameState.getHand());
             this.updateGameDisplay(); // This will re-render hand if sorted
             this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
             this.screenManager.showScreen('game');
             // If new cards were dealt (e.g. after playing a hand), animate them
             // This might need a flag if we only want to animate on actual new cards vs just sort
             this.animateCardDraw(); 
-        });
+        }, true); // Pass a flag to indicate this is part of finalize step for more specific logging if needed in CardManager
+        console.log("CLIENT: Finalize hand update and display complete.");
     }
 
     updateGameDisplay() {
         if (!this.gameState.gameState) return;
         
+        // console.log("CLIENT: Updating game display with state:", this.gameState.gameState); // Can be too verbose
         this.uiUpdater.updateGameDisplay(this.gameState.gameState, this.cardManager.getSelectedCount());
         this.displayHand();
     }
 
     displayHand() {
+        logClientHand("Displaying hand in UI:", this.gameState.getHand());
         this.uiUpdater.displayHand(
             this.gameState.getHand(),
             this.cardManager.selectedCards,
@@ -291,31 +311,38 @@ class PokerGame {
             this.uiUpdater.updateButtonStates(this.gameState.gameState, selectedCards.size);
             this.uiUpdater.elements.selectionCount.textContent = selectedCards.size;
             this.previewManager.updateLivePreview(selectedCards, this.gameState.gameState);
+            logClientHand("Hand after card click (selection changed):", this.gameState.getHand());
+            console.log("CLIENT: Selected card indices after click:", Array.from(selectedCards));
         });
     }
 
     async sortCardsByRank() {
+        logClientHand("Hand BEFORE sort by rank request:", this.gameState.getHand());
         // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsByRank(this.gameState.gameState, () => {
             this.uiUpdater.updateButtonStates(this.gameState.gameState, this.cardManager.getSelectedCount());
             this.uiUpdater.elements.selectionCount.textContent = this.cardManager.getSelectedCount();
             this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+            logClientHand("Hand AFTER sort by rank completed:", this.gameState.getHand());
             // No need to call setSortButtonsDisabled(false) here, CardManager handles it.
         }, this.uiUpdater);
     }
 
     async sortCardsBySuit() {
+        logClientHand("Hand BEFORE sort by suit request:", this.gameState.getHand());
         // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsBySuit(this.gameState.gameState, () => {
             this.uiUpdater.updateButtonStates(this.gameState.gameState, this.cardManager.getSelectedCount());
             this.uiUpdater.elements.selectionCount.textContent = this.cardManager.getSelectedCount();
             this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+            logClientHand("Hand AFTER sort by suit completed:", this.gameState.getHand());
             // No need to call setSortButtonsDisabled(false) here, CardManager handles it.
         }, this.uiUpdater);
     }
 
     animateCardDraw() {
         const cards = document.querySelectorAll('#player-hand .card');
+        console.log("CLIENT: Animating card draw for", cards.length, "cards.");
         window.gameAnimations.queueAnimation(() => 
             window.gameAnimations.animateCardDeal(Array.from(cards))
         );

@@ -1,3 +1,8 @@
+function logManagerHand(label, handArray) { // Renamed to avoid conflict if CardManager is used elsewhere
+    const handStr = handArray && Array.isArray(handArray) ? handArray.map(card => `${card.rank}${card.suit.charAt(0).toUpperCase()}`).join(', ') : 'N/A';
+    console.log(`CARD_MANAGER: ${label} [${handStr}] (Count: ${handArray ? handArray.length : 0})`);
+}
+
 class CardManager {
     constructor() {
         this.selectedCards = new Set();
@@ -78,6 +83,7 @@ class CardManager {
         this.isSorting = true;
         this.setSortButtonsDisabled(true);
 
+        logManagerHand("Hand before sort by rank calculation:", gameState.hand ? [...gameState.hand] : 'N/A');
         if (this.activeSortType === 'rank') {
             this.activeSortType = null; // Toggle off
             // If toggling off, we don't re-sort, just update button appearance
@@ -88,6 +94,7 @@ class CardManager {
             this.activeSortType = 'rank';
             try {
                 const sortResult = this._calculateSort(gameState.hand, 'rank');
+                logManagerHand("Hand after sort by rank calculation (before animation/DOM update):", sortResult.newHand);
                 await this._applySortAnimation(sortResult, gameState, onSortComplete);
             } finally {
                 // isSorting will be set to false by _applySortAnimation or here
@@ -108,12 +115,14 @@ class CardManager {
         this.isSorting = true;
         this.setSortButtonsDisabled(true);
 
+        logManagerHand("Hand before sort by suit calculation:", gameState.hand ? [...gameState.hand] : 'N/A');
         if (this.activeSortType === 'suit') {
             this.activeSortType = null; // Toggle off
         } else {
             this.activeSortType = 'suit';
             try {
                 const sortResult = this._calculateSort(gameState.hand, 'suit');
+                logManagerHand("Hand after sort by suit calculation (before animation/DOM update):", sortResult.newHand);
                 await this._applySortAnimation(sortResult, gameState, onSortComplete);
             } finally {
                 // isSorting will be set to false by _applySortAnimation or here
@@ -162,6 +171,7 @@ class CardManager {
         const cardContainer = document.getElementById('player-hand');
         if (!cardContainer) return; // Guard against missing element
         const currentCardElements = Array.from(cardContainer.children);
+        logManagerHand("Applying sort animation. Current hand in DOM (pre-sort):", gameState.hand ? [...gameState.hand] : 'N/A');
 
         // Lift cards
         currentCardElements.forEach(cardElement => {
@@ -180,8 +190,12 @@ class CardManager {
         cardContainer.replaceChildren(...reorderedElements);
 
         // Update game state
+        const oldHand = gameState.hand ? [...gameState.hand] : null;
         gameState.hand = sortResult.newHand;
         this.selectedCards = sortResult.newSelectedCards;
+        logManagerHand("Hand state updated in CardManager after sort. Old hand:", oldHand);
+        logManagerHand("New hand:", gameState.hand);
+        console.log("CARD_MANAGER: New selected cards (indices):", Array.from(this.selectedCards));
 
         // Update elements
         reorderedElements.forEach((cardElement, newIndex) => {
@@ -223,16 +237,19 @@ class CardManager {
         document.getElementById('sort-suit-btn').disabled = disabled;
     }
 
-    async applyActiveSort(gameState, onSortComplete) {
+    async applyActiveSort(gameState, onSortComplete, isFinalizeStep = false) {
         if (this.isSorting || !this.activeSortType || !gameState.hand || gameState.hand.length < 2) {
+            if (isFinalizeStep) console.log("CARD_MANAGER: applyActiveSort (finalize) - No active sort or hand not sortable. Calling onSortComplete.");
             if (onSortComplete) onSortComplete(); // Ensure callback is called even if no sort happens
             return;
         }
 
+        if (isFinalizeStep) logManagerHand(`Applying active sort ('${this.activeSortType}') during finalize step. Hand before:`, gameState.hand ? [...gameState.hand] : 'N/A');
         this.isSorting = true;
         this.setSortButtonsDisabled(true);
         try {
             const sortResult = this._calculateSort(gameState.hand, this.activeSortType);
+            if (isFinalizeStep) logManagerHand(`Hand after active sort ('${this.activeSortType}') calculation (finalize step, before animation):`, sortResult.newHand);
             await this._applySortAnimation(sortResult, gameState, onSortComplete);
         } finally {
             this.isSorting = false;

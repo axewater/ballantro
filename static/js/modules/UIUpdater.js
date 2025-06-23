@@ -51,6 +51,8 @@ class UIUpdater {
 
     displayHand(hand, selectedCards, cardManager, onCardClick) {
         this.elements.playerHand.innerHTML = '';
+        // Using the global logClientHand or a specific one for UIUpdater if preferred
+        logClientHand("UI_UPDATER: Displaying hand. Received hand:", hand);
         
         hand.forEach((card, index) => {
             const cardElement = cardManager.createCardElement(card, selectedCards.has(index));
