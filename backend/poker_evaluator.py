@@ -34,8 +34,12 @@ class PokerEvaluator:
         if len(cards) != 5:
             raise ValueError("Hand must contain exactly 5 cards")
         
-        # Calculate card chip values
-        card_chips = sum(card.get_chip_value() for card in cards)
+        # ------------------------------------------------------------------ #
+        # 1)  Calculate **card chips** & accumulated bonuses                #
+        # ------------------------------------------------------------------ #
+        base_card_chips = sum(card._base_chip_value() for card in cards)
+        bonus_chips = sum(card.bonus_chips() for card in cards)
+        card_chips = base_card_chips + bonus_chips
         
         # Determine hand type
         hand_type = cls._get_hand_type(cards)
@@ -43,7 +47,9 @@ class PokerEvaluator:
         # Get scoring information
         score_info = cls.HAND_SCORES[hand_type]
         base_chips = score_info["base_chips"]
-        multiplier = score_info["multiplier"]
+        base_multiplier = score_info["multiplier"]
+        bonus_multiplier = sum(card.bonus_multiplier() for card in cards)
+        multiplier = base_multiplier + bonus_multiplier
         
         # Calculate total score: (card_chips + base_chips) * multiplier
         total_score = (card_chips + base_chips) * multiplier
@@ -272,7 +278,11 @@ class PokerEvaluator:
 
         score_config = cls.HAND_SCORES[hand_type]
         base_chips = score_config["base_chips"]
-        multiplier = score_config["multiplier"]
+        base_multiplier = score_config["multiplier"]
+        # Include possible bonuses from special cards during preview
+        bonus_chips = sum(card.bonus_chips() for card in cards)
+        bonus_multiplier = sum(card.bonus_multiplier() for card in cards)
+        multiplier = base_multiplier + bonus_multiplier
 
         return {
             "hand_type": hand_type.value,

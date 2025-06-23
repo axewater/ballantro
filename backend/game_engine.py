@@ -121,19 +121,29 @@ class GameEngine:
         return session.proceed_to_next_round()
 
     def _generate_random_card(self) -> Card:
-        """Generate a random card for the shop"""
+        """
+        Generate a **special card** for the shop.
+
+        Every shop card comes with exactly *one* random effect chosen from
+        `backend.card_effects.AVAILABLE_EFFECT_NAMES`.
+        """
         from .models import Suit, Rank
+        from .card_effects import AVAILABLE_EFFECT_NAMES
+        import random as _rnd
         
         # Get all possible suits and ranks
         all_suits = list(Suit)
         all_ranks = list(Rank)
         
         # Randomly select a suit and rank
-        random_suit = random.choice(all_suits)
-        random_rank = random.choice(all_ranks)
+        random_suit = _rnd.choice(all_suits)
+        random_rank = _rnd.choice(all_ranks)
         
-        # Create and return a new card
-        return Card(suit=random_suit, rank=random_rank)
+        # Pick one random effect for the card
+        effect = _rnd.choice(AVAILABLE_EFFECT_NAMES)
+        
+        # Create and return a new card with the effect
+        return Card(suit=random_suit, rank=random_rank, effects=[effect])
     
     def generate_shop_cards(self, count: int = 3) -> List[Card]:
         """Generate random cards for the shop"""
@@ -422,10 +432,31 @@ class GameSession:
         self.draws_used = 0
         self.in_shop = False
         
-        # Reset deck but keep the hand (which may include purchased cards)
+        # Start with a fresh, shuffled deck **and then remove any cards that
+        # are already in the player's hand** so the deck count remains
+        # consistent and no duplicates can appear.
         self.deck.reset()
-        logger.info(f"Session {self.session_id}: Advancing to round {self.current_round}. Resetting deck.")
-        logger.info(f"Session {self.session_id}: Hand for round {self.current_round}: {[str(c) for c in self.hand]}")
+        # Remove cards that are currently in hand from the refreshed deck
+        hand_identity = {(c.suit, c.rank) for c in self.hand}
+        original_count = self.deck.remaining_count()
+        self.deck.cards = [
+            c for c in self.deck.cards if (c.suit, c.rank) not in hand_identity
+        ]
+        logger.info(
+            "Session %s: Advancing to round %d. Deck reset (was %d), "
+            "removed %d hand cards – %d cards remain.",
+            self.session_id,
+            self.current_round,
+            original_count,
+            len(hand_identity),
+            self.deck.remaining_count(),
+        )
+        logger.info(
+            "Session %s: Hand for round %d: %s",
+            self.session_id,
+            self.current_round,
+            [str(c) for c in self.hand],
+        )
         
         return {
             "game_state": self.get_state().dict()

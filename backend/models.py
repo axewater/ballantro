@@ -26,18 +26,47 @@ class Rank(str, Enum):
 class Card(BaseModel):
     suit: Suit
     rank: Rank
+    # List of *effect identifiers* applied to this specific card.
+    effects: list[str] = []  # resolved via `backend.card_effects.EFFECT_REGISTRY`
     
     def __str__(self):
         return f"{self.rank}{self.suit}"
     
-    def get_chip_value(self) -> int:
-        """Get the chip value of the card"""
+    # ----------------------------  Scoring helpers  ---------------------------- #
+    def _base_chip_value(self) -> int:
+        """Chip value derived *solely* from the rank (no effects applied)."""
         if self.rank == Rank.ACE:
             return 11
-        elif self.rank in [Rank.KING, Rank.QUEEN, Rank.JACK]:
+        if self.rank in {Rank.KING, Rank.QUEEN, Rank.JACK}:
             return 10
-        else:
-            return int(self.rank)
+        return int(self.rank)
+
+    def get_chip_value(self) -> int:
+        """
+        Backwards-compat accessor – now includes any **chip bonus** coming from
+        attached effects so that legacy code keeps working transparently.
+        """
+        return self._base_chip_value() + self._effect_bonus_chips()
+
+    # ------------------------------------------------------------------------- #
+    #  Effect integration
+    # ------------------------------------------------------------------------- #
+    def _effect_bonus_chips(self) -> int:
+        """Sum of flat chip bonuses contributed by all effects on this card."""
+        from .card_effects import EFFECT_REGISTRY  # local import to avoid cycles
+        return sum(EFFECT_REGISTRY[eff].bonus_chips() for eff in self.effects if eff in EFFECT_REGISTRY)
+
+    def _effect_bonus_multiplier(self) -> int:
+        """Sum of multiplier bonuses contributed by all effects on this card."""
+        from .card_effects import EFFECT_REGISTRY
+        return sum(EFFECT_REGISTRY[eff].bonus_multiplier() for eff in self.effects if eff in EFFECT_REGISTRY)
+
+    # Public helpers used by the evaluator
+    def bonus_chips(self) -> int:
+        return self._effect_bonus_chips()
+
+    def bonus_multiplier(self) -> int:
+        return self._effect_bonus_multiplier()
 
 class HandType(str, Enum):
     HIGH_CARD = "high_card"
