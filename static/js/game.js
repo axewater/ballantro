@@ -5,6 +5,12 @@ class PokerGame {
         this.selectedCards = new Set();
         this.currentScreen = 'startup';
         
+        // Define order for sorting cards
+        this.RANK_ORDER_MAP = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+        this.SUIT_ORDER_MAP = { 'spades': 4, 'hearts': 3, 'clubs': 2, 'diamonds': 1 }; // User specified: Spades, Hearts, Clubs, Diamonds
+
+        this.isSorting = false; // Flag to prevent actions during sort animation
+
         this.initializeEventListeners();
         this.showScreen('startup');
     }
@@ -16,7 +22,9 @@ class PokerGame {
 
         // Game screen
         document.getElementById('draw-cards-btn').addEventListener('click', () => this.drawCards());
-        document.getElementById('play-hand-btn').addEventListener('click', () => this.playHand());
+        document.getElementById('play-hand-btn').addEventListener('click', () => this.playHand()); // Added async
+        document.getElementById('sort-rank-btn').addEventListener('click', async () => await this.sortCardsByRank());
+        document.getElementById('sort-suit-btn').addEventListener('click', async () => await this.sortCardsBySuit());
 
         // Scoring screen
         document.getElementById('continue-btn').addEventListener('click', () => this.continueGame());
@@ -46,12 +54,15 @@ class PokerGame {
     }
 
     async startNewGame() {
+        if (this.isSorting) return; // Prevent action during sort
+        // Potentially disable start game button if a sort is in progress from a previous game instance (though unlikely)
+        // For simplicity, we assume new game resets any such state.
+
         try {
             const response = await fetch('/api/new_game', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                method: 'POST'
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 this.gameState = data.game_state;
@@ -59,6 +70,7 @@ class PokerGame {
                 this.selectedCards.clear();
                 this.updateGameDisplay();
                 this.showScreen('game');
+                this.animateCardDraw();
             } else {
                 console.error('Failed to start new game:', data);
             }
@@ -68,8 +80,9 @@ class PokerGame {
     }
 
     async drawCards() {
+        if (this.isSorting) return;
         if (this.selectedCards.size === 0) {
-            alert('Please select at least one card to discard');
+            alert('Please select at least one card to discard.');
             return;
         }
 
@@ -88,11 +101,10 @@ class PokerGame {
                 this.gameState = data.game_state;
                 this.selectedCards.clear();
                 this.updateGameDisplay();
-                
-                // Animate card drawing
                 this.animateCardDraw();
             } else {
-                alert('Error: ' + data.detail);
+                console.error('Failed to draw cards:', data);
+                alert(data.message || 'Failed to draw cards.');
             }
         } catch (error) {
             console.error('Error drawing cards:', error);
@@ -100,8 +112,9 @@ class PokerGame {
     }
 
     async playHand() {
+        if (this.isSorting) return;
         if (this.selectedCards.size !== 5) {
-            alert('Please select exactly 5 cards to play');
+            alert('Please select exactly 5 cards to play.');
             return;
         }
 
@@ -120,43 +133,13 @@ class PokerGame {
                 this.gameState = data.game_state;
                 this.handResult = data.hand_result;
                 this.roundComplete = data.round_complete;
-                
-                // Show scoring screen with animation
                 this.showScoringScreen();
             } else {
-                alert('Error: ' + data.detail);
+                console.error('Failed to play hand:', data);
+                alert(data.message || 'Failed to play hand.');
             }
         } catch (error) {
             console.error('Error playing hand:', error);
-        }
-    }
-
-    continueGame() {
-        if (this.gameState.is_victory) {
-            this.showScreen('victory');
-            document.getElementById('final-score').textContent = this.gameState.total_score;
-            // Trigger victory animation
-            setTimeout(() => {
-                window.gameAnimations.animateVictory();
-            }, 500);
-        } else if (this.gameState.is_game_over) {
-            this.showScreen('game-over');
-            document.getElementById('game-over-score').textContent = this.gameState.total_score;
-        } else {
-            // Check if round changed for transition animation
-            if (this.roundComplete) {
-                window.gameAnimations.queueAnimation(() => 
-                    window.gameAnimations.animateRoundTransition(this.gameState.current_round)
-                ).then(() => {
-                    this.selectedCards.clear();
-                    this.updateGameDisplay();
-                    this.showScreen('game');
-                });
-            } else {
-                this.selectedCards.clear();
-                this.updateGameDisplay();
-                this.showScreen('game');
-            }
         }
     }
 
@@ -166,34 +149,53 @@ class PokerGame {
             const data = await response.json();
             
             if (data.success) {
-                this.displayHighscores(data.highscores);
+                const highscoresList = document.getElementById('highscores-list');
+                highscoresList.innerHTML = '';
+                
+                if (data.highscores.length === 0) {
+                    highscoresList.innerHTML = '<div class="no-scores">No scores yet</div>';
+                } else {
+                    data.highscores.forEach((score, index) => {
+                        const scoreItem = document.createElement('div');
+                        scoreItem.className = 'highscore-item';
+                        scoreItem.innerHTML = `
+                            <div class="highscore-rank">${index + 1}</div>
+                            <div class="highscore-name">${score.name}</div>
+                            <div class="highscore-score">${score.score}</div>
+                        `;
+                        highscoresList.appendChild(scoreItem);
+                    });
+                }
+                
                 this.showScreen('highscores');
+            } else {
+                console.error('Failed to get highscores:', data);
             }
         } catch (error) {
-            console.error('Error fetching highscores:', error);
+            console.error('Error getting highscores:', error);
         }
     }
 
-    async saveGameOverScore() {
-        const name = document.getElementById('player-name').value.trim();
+    saveVictoryScore() {
+        const name = document.getElementById('modal-player-name').value.trim();
         if (!name) {
-            alert('Please enter your name');
+            alert('Please enter your name.');
             return;
         }
-
-        await this.saveScore(name, this.gameState.total_score);
+        
+        this.saveScore(name, this.gameState.total_score);
+        this.hideNameModal();
         this.showHighscores();
     }
 
-    async saveVictoryScore() {
-        const name = document.getElementById('modal-player-name').value.trim();
+    saveGameOverScore() {
+        const name = document.getElementById('player-name').value.trim();
         if (!name) {
-            alert('Please enter your name');
+            alert('Please enter your name.');
             return;
         }
-
-        this.hideNameModal();
-        await this.saveScore(name, this.gameState.total_score);
+        
+        this.saveScore(name, this.gameState.total_score);
         this.showHighscores();
     }
 
@@ -249,13 +251,53 @@ class PokerGame {
         const playedCards = playedCardsContainer.querySelectorAll('.card');
         window.gameAnimations.queueAnimation(() => 
             window.gameAnimations.animateCardScoring(Array.from(playedCards), this.handResult)
-        );
+        ).then(() => {
+            // Animate score counting
+            this.animateScoreCounting('card-chips', 0, this.handResult.card_chips, 1000);
+            this.animateScoreCounting('base-chips', 0, this.handResult.base_chips, 1000);
+            
+            setTimeout(() => {
+                document.getElementById('multiplier').textContent = `×${this.handResult.multiplier}`;
+                document.getElementById('multiplier').classList.add('highlight');
+                
+                setTimeout(() => {
+                    this.animateScoreCounting('hand-score', 0, this.handResult.total_score, 1500);
+                    document.getElementById('multiplier').classList.remove('highlight');
+                }, 500);
+            }, 1000);
+        });
+    }
+
+    continueGame() {
+        if (this.isSorting) return;
+        if (this.gameState.is_victory) {
+            document.getElementById('final-score').textContent = this.gameState.total_score;
+            this.showScreen('victory');
+        } else if (this.gameState.is_game_over) {
+            document.getElementById('game-over-score').textContent = this.gameState.total_score;
+            this.showScreen('game-over');
+        } else {
+            // Check if round changed for transition animation
+            if (this.roundComplete) {
+                window.gameAnimations.queueAnimation(() => 
+                    window.gameAnimations.animateRoundTransition(this.gameState.current_round)
+                ).then(() => {
+                    this.selectedCards.clear();
+                    this.updateGameDisplay();
+                    this.showScreen('game');
+                });
+            } else {
+                this.selectedCards.clear();
+                this.updateGameDisplay();
+                this.showScreen('game');
+            }
+        }
     }
 
     updateGameDisplay() {
         if (!this.gameState) return;
-
-        // Update header info
+        
+        // Update game info
         document.getElementById('current-round').textContent = this.gameState.current_round;
         document.getElementById('total-score').textContent = this.gameState.total_score;
         document.getElementById('round-target').textContent = this.gameState.round_target;
@@ -263,59 +305,53 @@ class PokerGame {
         document.getElementById('max-hands').textContent = this.gameState.max_hands;
         document.getElementById('draws-used').textContent = this.gameState.draws_used;
         document.getElementById('max-draws').textContent = this.gameState.max_draws;
-        document.getElementById('deck-remaining').textContent = this.gameState.deck_remaining;
-
+        
         // Update hand display
         this.displayHand();
         
         // Update button states
-        this.updateButtonStates();
+        document.getElementById('draw-cards-btn').disabled = 
+            this.selectedCards.size === 0 || 
+            this.gameState.draws_used >= this.gameState.max_draws;
+            
+        document.getElementById('play-hand-btn').disabled = this.selectedCards.size !== 5;
+        
+        // Update selection count
+        document.getElementById('selection-count').textContent = this.selectedCards.size;
     }
 
     displayHand() {
         const handContainer = document.getElementById('player-hand');
         handContainer.innerHTML = '';
-
+        
         this.gameState.hand.forEach((card, index) => {
-            const cardElement = this.createCardElement(card, true, index);
+            const cardElement = this.createCardElement(card, this.selectedCards.has(index));
+            cardElement.dataset.index = index;
+            cardElement.addEventListener('click', () => this.toggleCardSelection(index, cardElement));
             handContainer.appendChild(cardElement);
         });
-        
-        // Animate card dealing
-        const cards = handContainer.querySelectorAll('.card');
-        window.gameAnimations.queueAnimation(() => 
-            window.gameAnimations.animateCardDeal(Array.from(cards))
-        );
     }
 
-    createCardElement(card, clickable = true, index = null) {
-        const cardDiv = document.createElement('div');
-        cardDiv.className = `card ${card.suit}`;
+    createCardElement(card, isSelected) {
+        const cardElement = document.createElement('div');
+        cardElement.className = `card ${card.suit}${isSelected ? ' selected' : ''}`;
         
-        if (clickable && index !== null) {
-            cardDiv.addEventListener('click', () => this.toggleCardSelection(index, cardDiv));
-            if (this.selectedCards.has(index)) {
-                cardDiv.classList.add('selected');
-            }
-        }
-
-        const suitSymbols = {
-            hearts: '♥',
-            diamonds: '♦',
-            clubs: '♣',
-            spades: '♠'
-        };
-
-        cardDiv.innerHTML = `
-            <div class="card-rank">${card.rank}</div>
-            <div class="card-suit">${suitSymbols[card.suit]}</div>
-            <div class="card-rank-bottom">${card.rank}</div>
-        `;
-
-        return cardDiv;
+        const rankElement = document.createElement('div');
+        rankElement.className = 'card-rank';
+        rankElement.textContent = card.rank;
+        
+        const suitElement = document.createElement('div');
+        suitElement.className = 'card-suit';
+        suitElement.textContent = this.getSuitSymbol(card.suit);
+        
+        cardElement.appendChild(rankElement);
+        cardElement.appendChild(suitElement);
+        
+        return cardElement;
     }
 
     toggleCardSelection(index, cardElement) {
+        if (this.isSorting) return; // Prevent selection changes during sort
         if (this.selectedCards.has(index)) {
             this.selectedCards.delete(index);
             cardElement.classList.remove('selected');
@@ -325,65 +361,62 @@ class PokerGame {
             cardElement.classList.add('selected');
             window.gameAnimations.animateCardSelection(cardElement, true);
         }
-
-        this.updateSelectionDisplay();
-        this.updateButtonStates();
-    }
-
-    updateSelectionDisplay() {
+        
+        // Update button states
+        document.getElementById('draw-cards-btn').disabled = 
+            this.selectedCards.size === 0 || 
+            this.gameState.draws_used >= this.gameState.max_draws;
+            
+        document.getElementById('play-hand-btn').disabled = this.selectedCards.size !== 5;
+        
+        // Update selection count
         document.getElementById('selection-count').textContent = this.selectedCards.size;
     }
 
-    updateButtonStates() {
-        const drawBtn = document.getElementById('draw-cards-btn');
-        const playBtn = document.getElementById('play-hand-btn');
-
-        // Draw button: enabled if cards selected and draws remaining
-        drawBtn.disabled = this.selectedCards.size === 0 || 
-                          this.gameState.draws_used >= this.gameState.max_draws;
-
-        // Play button: enabled if exactly 5 cards selected
-        playBtn.disabled = this.selectedCards.size !== 5;
-    }
-
-    displayHighscores(highscores) {
-        const container = document.getElementById('highscores-list');
-        container.innerHTML = '';
-
-        if (highscores.length === 0) {
-            container.innerHTML = '<p style="color: rgba(255,255,255,0.6); font-style: italic;">No scores yet</p>';
-            return;
+    getSuitSymbol(suit) {
+        switch (suit) {
+            case 'hearts': return '♥';
+            case 'diamonds': return '♦';
+            case 'clubs': return '♣';
+            case 'spades': return '♠';
+            default: return '';
         }
-
-        highscores.forEach((score, index) => {
-            const item = document.createElement('div');
-            item.className = 'highscore-item';
-            
-            const date = new Date(score.timestamp).toLocaleDateString();
-            
-            item.innerHTML = `
-                <div class="highscore-rank">#${index + 1}</div>
-                <div class="highscore-name">${score.name}</div>
-                <div class="highscore-score">${score.score}</div>
-            `;
-            
-            container.appendChild(item);
-        });
     }
 
     formatHandType(handType) {
-        const typeMap = {
-            'straight_flush': 'Straight Flush',
-            'four_of_a_kind': 'Four of a Kind',
-            'full_house': 'Full House',
-            'flush': 'Flush',
-            'straight': 'Straight',
-            'three_of_a_kind': 'Three of a Kind',
-            'two_pair': 'Two Pair',
-            'one_pair': 'One Pair',
-            'high_card': 'High Card'
+        return handType
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    animateScoreCounting(elementId, start, end, duration) {
+        const element = document.getElementById(elementId);
+        const startTime = performance.now();
+        const difference = end - start;
+        
+        const step = (timestamp) => {
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const easeProgress = this.easeOutQuart(progress);
+            const current = Math.floor(start + difference * easeProgress);
+            element.textContent = current;
+            
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            } else {
+                element.textContent = end;
+                element.classList.add('highlight');
+                setTimeout(() => {
+                    element.classList.remove('highlight');
+                }, 500);
+            }
         };
-        return typeMap[handType] || handType;
+        
+        requestAnimationFrame(step);
+    }
+    
+    easeOutQuart(x) {
+        return 1 - Math.pow(1 - x, 4);
     }
 
     showScreen(screenName) {
@@ -391,8 +424,8 @@ class PokerGame {
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
         });
-
-        // Show target screen
+        
+        // Show the requested screen
         document.getElementById(`${screenName}-screen`).classList.add('active');
         this.currentScreen = screenName;
     }
@@ -404,10 +437,158 @@ class PokerGame {
             window.gameAnimations.animateCardDeal(Array.from(cards))
         );
     }
+
+    // Sort cards by rank
+    async sortCardsByRank() {
+        if (this.isSorting || !this.gameState || !this.gameState.hand || this.gameState.hand.length < 2) return;
+        this.isSorting = true;
+        this.setSortButtonsDisabled(true);
+
+        try {
+            const indexedHand = this.gameState.hand.map((card, index) => ({ card, originalIndex: index }));
+
+            indexedHand.sort((a, b) => {
+                const rankDiff = this.RANK_ORDER_MAP[b.card.rank] - this.RANK_ORDER_MAP[a.card.rank]; // Descending rank
+                if (rankDiff !== 0) return rankDiff;
+                return this.SUIT_ORDER_MAP[b.card.suit] - this.SUIT_ORDER_MAP[a.card.suit]; // Descending suit
+            });
+
+            const newVisualOrderOfOriginalIndices = indexedHand.map(item => item.originalIndex);
+            const newGameStateHand = indexedHand.map(item => item.card);
+            const newSelectedCards = new Set();
+            indexedHand.forEach((item, newIndex) => {
+                if (this.selectedCards.has(item.originalIndex)) {
+                    newSelectedCards.add(newIndex);
+                }
+            });
+
+            await window.gameAnimations.queueAnimation(() =>
+                this.animateAndApplySort(newVisualOrderOfOriginalIndices, newGameStateHand, newSelectedCards)
+            );
+        } finally {
+            this.isSorting = false;
+            this.setSortButtonsDisabled(false);
+        }
+    }
+
+    // Sort cards by suit
+    async sortCardsBySuit() {
+        if (this.isSorting || !this.gameState || !this.gameState.hand || this.gameState.hand.length < 2) return;
+        this.isSorting = true;
+        this.setSortButtonsDisabled(true);
+
+        try {
+            const indexedHand = this.gameState.hand.map((card, index) => ({ card, originalIndex: index }));
+
+            indexedHand.sort((a, b) => {
+                const suitDiff = this.SUIT_ORDER_MAP[b.card.suit] - this.SUIT_ORDER_MAP[a.card.suit]; // Descending suit
+                if (suitDiff !== 0) return suitDiff;
+                return this.RANK_ORDER_MAP[b.card.rank] - this.RANK_ORDER_MAP[a.card.rank]; // Descending rank
+            });
+
+            const newVisualOrderOfOriginalIndices = indexedHand.map(item => item.originalIndex);
+            const newGameStateHand = indexedHand.map(item => item.card);
+            const newSelectedCards = new Set();
+            indexedHand.forEach((item, newIndex) => {
+                if (this.selectedCards.has(item.originalIndex)) {
+                    newSelectedCards.add(newIndex);
+                }
+            });
+
+            await window.gameAnimations.queueAnimation(() =>
+                this.animateAndApplySort(newVisualOrderOfOriginalIndices, newGameStateHand, newSelectedCards)
+            );
+        } finally {
+            this.isSorting = false;
+            this.setSortButtonsDisabled(false);
+        }
+    }
+
+    setSortButtonsDisabled(disabled) {
+        document.getElementById('sort-rank-btn').disabled = disabled;
+        document.getElementById('sort-suit-btn').disabled = disabled;
+    }
+
+    async animateAndApplySort(newVisualOrderOfOriginalIndices, newGameStateHand, newSelectedCards) {
+        const cardContainer = document.getElementById('player-hand');
+        const currentCardElements = Array.from(cardContainer.children);
+
+        // 1. Lift cards
+        currentCardElements.forEach(cardElement => {
+            cardElement.style.transition = 'transform 0.3s ease-out'; // Use ease-out for lift
+            cardElement.style.transform = 'translateY(-30px)';
+            cardElement.style.zIndex = '100'; // Ensure lifted cards are on top
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 300)); // Wait for lift animation
+
+        // 2. Reorder DOM elements
+        const reorderedDomElements = newVisualOrderOfOriginalIndices.map(originalIdx =>
+            currentCardElements.find(c => parseInt(c.dataset.index) === originalIdx)
+        ).filter(Boolean); // Filter out undefined if any card not found
+
+        // Temporarily remove transition for instant re-ordering if using replaceChildren
+        // reorderedDomElements.forEach(el => el.style.transition = 'none');
+        cardContainer.replaceChildren(...reorderedDomElements);
+
+        // 3. Update game state (hand and selected cards)
+        this.gameState.hand = newGameStateHand;
+        this.selectedCards = newSelectedCards;
+
+        // 4. Update dataset.index and 'selected' class for each card in its new position
+        // Also re-apply transitions for the lowering animation
+        reorderedDomElements.forEach((cardElement, newIndex) => {
+            cardElement.dataset.index = newIndex; // Update data-index to new position
+            
+            // Update 'selected' class based on new selectedCards set and new index
+            if (this.selectedCards.has(newIndex)) {
+                cardElement.classList.add('selected');
+                 // Apply selection style directly, animation might be too flashy here
+                cardElement.style.transform = 'translateY(-30px) scale(1.1)'; // Keep it lifted and scaled if selected
+            } else {
+                cardElement.classList.remove('selected');
+                cardElement.style.transform = 'translateY(-30px)'; // Keep it lifted but not scaled
+            }
+            // Re-apply transition for lowering
+            cardElement.style.transition = 'transform 0.3s ease-in'; // Use ease-in for settle
+        });
+        
+        // Slight delay before lowering to ensure DOM updates are processed
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // 5. Lower cards to their new positions
+        reorderedDomElements.forEach((cardElement, newIndex) => {
+            if (this.selectedCards.has(newIndex)) {
+                 // If selected, animate to selected position
+                window.gameAnimations.animateCardSelection(cardElement, true); // This will handle transform and z-index
+            } else {
+                // If not selected, animate to normal position
+                cardElement.style.transform = 'translateY(0) scale(1)';
+            }
+            cardElement.style.zIndex = this.selectedCards.has(newIndex) ? '10' : '1'; // Reset z-index
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 300)); // Wait for lowering/settle animation
+
+        // 6. Update UI elements that depend on selection/hand state
+        this.updateButtonStates();
+        this.updateSelectionCount();
+    }
+
+    updateButtonStates() {
+        document.getElementById('draw-cards-btn').disabled = 
+            this.selectedCards.size === 0 || 
+            this.gameState.draws_used >= this.gameState.max_draws;
+            
+        document.getElementById('play-hand-btn').disabled = this.selectedCards.size !== 5;
+    }
+
+    updateSelectionCount() {
+        document.getElementById('selection-count').textContent = this.selectedCards.size;
+    }
 }
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.game = new PokerGame();
+    window.pokerGame = new PokerGame();
 });
-
