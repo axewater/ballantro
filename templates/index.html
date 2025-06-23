@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Game</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Background -->
+        <div class="background">
+            <div class="bg-gradient"></div>
+            <div class="bg-pattern"></div>
+        </div>
+
+        <!-- Startup Screen -->
+        <div id="startup-screen" class="screen active">
+            <div class="glass-panel main-menu">
+                <h1 class="game-title">
+                    <span class="title-icon">♠</span>
+                    Poker Game
+                    <span class="title-icon">♥</span>
+                </h1>
+                <p class="game-subtitle">Single Player Poker Challenge</p>
+                
+                <div class="menu-buttons">
+                    <button id="start-game-btn" class="btn btn-primary">
+                        <span class="btn-icon">🎮</span>
+                        Start Game
+                    </button>
+                    <button id="highscores-btn" class="btn btn-secondary">
+                        <span class="btn-icon">🏆</span>
+                        Highscores
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Game Header -->
+            <div class="game-header">
+                <div class="glass-panel header-panel">
+                    <div class="game-info">
+                        <div class="info-item">
+                            <span class="info-label">Round</span>
+                            <span id="current-round" class="info-value">1</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Score</span>
+                            <span id="total-score" class="info-value">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Target</span>
+                            <span id="round-target" class="info-value">300</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Hands</span>
+                            <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Draws</span>
+                            <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hand Area -->
+            <div class="hand-area">
+                <div class="glass-panel hand-panel">
+                    <h3 class="hand-title">Your Hand</h3>
+                    <div id="player-hand" class="card-container">
+                        <!-- Cards will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Area -->
+            <div class="action-area">
+                <div class="glass-panel action-panel">
+                    <div class="action-buttons">
+                        <button id="draw-cards-btn" class="btn btn-secondary" disabled>
+                            <span class="btn-icon">🔄</span>
+                            Draw Cards
+                        </button>
+                        <button id="play-hand-btn" class="btn btn-primary" disabled>
+                            <span class="btn-icon">🎯</span>
+                            Play Hand
+                        </button>
+                    </div>
+                    <div class="selection-info">
+                        <span id="selection-count">0</span> cards selected
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deck Info -->
+            <div class="deck-info">
+                <div class="glass-panel deck-panel">
+                    <div class="deck-icon">🂠</div>
+                    <div class="deck-count">
+                        <span id="deck-remaining">52</span> cards remaining
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scoring Screen -->
+        <div id="scoring-screen" class="screen">
+            <div class="glass-panel scoring-panel">
+                <h2 class="scoring-title">Hand Result</h2>
+                
+                <div class="hand-result">
+                    <div class="played-cards" id="played-cards">
+                        <!-- Played cards will be shown here -->
+                    </div>
+                    
+                    <div class="result-details">
+                        <div class="hand-type">
+                            <span id="hand-type-name">Full House</span>
+                        </div>
+                        <div class="hand-description">
+                            <span id="hand-description">Aces over Kings</span>
+                        </div>
+                        
+                        <div class="score-breakdown">
+                            <div class="score-item">
+                                <span class="score-label">Card Chips:</span>
+                                <span id="card-chips" class="score-value">53</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">Base Chips:</span>
+                                <span id="base-chips" class="score-value">50</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">Multiplier:</span>
+                                <span id="multiplier" class="score-value">×7</span>
+                            </div>
+                            <div class="score-item total">
+                                <span class="score-label">Total Score:</span>
+                                <span id="hand-score" class="score-value">721</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="continue-btn" class="btn btn-primary">
+                    Continue
+                </button>
+            </div>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="victory-screen" class="screen">
+            <div class="glass-panel victory-panel">
+                <div class="victory-content">
+                    <h1 class="victory-title">🎉 VICTORY! 🎉</h1>
+                    <p class="victory-message">Congratulations! You've completed all 3 rounds!</p>
+                    
+                    <div class="final-score">
+                        <span class="final-score-label">Final Score:</span>
+                        <span id="final-score" class="final-score-value">0</span>
+                    </div>
+                    
+                    <div class="victory-actions">
+                        <button id="save-score-btn" class="btn btn-primary">
+                            <span class="btn-icon">💾</span>
+                            Save Score
+                        </button>
+                        <button id="play-again-btn" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span>
+                            Play Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <div class="glass-panel game-over-panel">
+                <div class="game-over-content">
+                    <h1 class="game-over-title">Game Over</h1>
+                    <p class="game-over-message">You didn't reach the target score in time.</p>
+                    
+                    <div class="final-score">
+                        <span class="final-score-label">Final Score:</span>
+                        <span id="game-over-score" class="final-score-value">0</span>
+                    </div>
+                    
+                    <div class="name-input-section">
+                        <label for="player-name">Enter your name:</label>
+                        <input type="text" id="player-name" class="name-input" placeholder="Your name" maxlength="20">
+                    </div>
+                    
+                    <div class="game-over-actions">
+                        <button id="save-game-over-score-btn" class="btn btn-primary">
+                            <span class="btn-icon">💾</span>
+                            Save Score
+                        </button>
+                        <button id="try-again-btn" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span>
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Highscores Screen -->
+        <div id="highscores-screen" class="screen">
+            <div class="glass-panel highscores-panel">
+                <h2 class="highscores-title">🏆 High Scores</h2>
+                
+                <div id="highscores-list" class="highscores-list">
+                    <!-- Highscores will be dynamically added here -->
+                </div>
+                
+                <button id="back-to-menu-btn" class="btn btn-secondary">
+                    <span class="btn-icon">⬅️</span>
+                    Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- Name Input Modal -->
+        <div id="name-modal" class="modal">
+            <div class="modal-content glass-panel">
+                <h3>Save Your Score</h3>
+                <div class="name-input-section">
+                    <label for="modal-player-name">Enter your name:</label>
+                    <input type="text" id="modal-player-name" class="name-input" placeholder="Your name" maxlength="20">
+                </div>
+                <div class="modal-actions">
+                    <button id="save-name-btn" class="btn btn-primary">Save</button>
+                    <button id="cancel-name-btn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/game.js"></script>
+    <script src="/static/js/animations.js"></script>
+</body>
+</html>
+
