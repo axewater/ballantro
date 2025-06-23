@@ -1,4 +1,6 @@
-# Poker Game - Complete Implementation
+# Ballantro Single Player Poker Rogue Like
+
+Version 0.2
 
 ## Overview
 A single-player poker card game built with FastAPI backend and vanilla JavaScript frontend, featuring exact hand verification, scoring mechanisms, and comprehensive animations throughout the gameplay experience.
