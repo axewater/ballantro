@@ -214,9 +214,13 @@ class CardManager {
 
         // Update game state (order only affects UI representation)
         const oldHand = gameState.hand ? [...gameState.hand] : null;
-        gameState.hand = sortResult.newHand;
+        // NOTE: Do **not** mutate `gameState.hand` here. The backend still
+        // relies on the original ordering, and changing it locally causes
+        // index ↔︎ card mismatches later (e.g. wrong cards shown on the
+        // scoring screen). We keep the UI-only order in the DOM and retain
+        // the logical order in `gameState.hand`.
+        logManagerHand("Hand state updated in CardManager after sort (UI-only reorder – logical order untouched).", oldHand);
         this.selectedCards = sortResult.newSelectedCards;
-        logManagerHand("Hand state updated in CardManager after sort. Old hand:", oldHand);
         logManagerHand("New hand:", gameState.hand);
         console.log("CARD_MANAGER: New selected cards (indices):", Array.from(this.selectedCards));
 
@@ -283,6 +287,19 @@ class CardManager {
     resetSortState() {
         this.activeSortType = null;
         // Mapping reset is handled explicitly when a fresh hand arrives
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Public helpers for other modules                                  //
+    // ------------------------------------------------------------------ //
+    /**
+     * Translate a **visual index** (position in the current UI order) to
+     * the concrete `Card` object from the logical hand that the backend
+     * still uses.
+     */
+    getCardByVisualIndex(gameState, visualIdx) {
+        const backendIdx = this.visualToLogical[visualIdx];
+        return gameState.hand?.[backendIdx];
     }
 }
 

@@ -176,6 +176,8 @@ class GameSession:
         self.shop_cards = []
         self.shop_reroll_cost = 1
         self.shop_card_cost = 3
+
+        self.purchased_cards: List[Card] = []  # Cards bought in shop, shuffled into deck next round
         
         # Game configuration
         self.max_hands = 4
@@ -398,19 +400,17 @@ class GameSession:
         # Get the card to buy
         card_to_buy = self.shop_cards[card_index]
         
-        # Deduct card cost
-        self.money -= self.shop_card_cost
-        
-        # Add card to hand
-        self.hand.append(card_to_buy)
-        logger.info(f"Session {self.session_id}: Bought card {str(card_to_buy)} for ${self.shop_card_cost}. Money remaining: ${self.money}")
-        
+        # Queue the bought card to be shuffled into the deck for the NEXT round
+        # (do **not** add it to the hand directly – it should behave like a
+        #   deck-builder where bought cards are drawn later).
+        self.purchased_cards.append(card_to_buy)
+
         # Remove card from shop
         self.shop_cards.pop(card_index)
         
-        return {
-            "game_state": self.get_state().dict()
-        }
+        logger.info(f"Session {self.session_id}: Bought card {str(card_to_buy)} for ${self.shop_card_cost}. Money remaining: ${self.money}")
+        
+        return {"game_state": self.get_state().dict()}
     
     def _deal_initial_hand(self):
         """Deal initial hand of cards"""
@@ -432,16 +432,28 @@ class GameSession:
         self.draws_used = 0
         self.in_shop = False
         
-        # Start with a fresh, shuffled deck **and then remove any cards that
-        # are already in the player's hand** so the deck count remains
-        # consistent and no duplicates can appear.
+        # Start with a fresh, shuffled deck.
         self.deck.reset()
-        # Remove cards that are currently in hand from the refreshed deck
+
+        # ------------------------------------------------------------------
+        #  1)  Remove any cards that are already in the player's HAND
+        # ------------------------------------------------------------------
         hand_identity = {(c.suit, c.rank) for c in self.hand}
+        self.deck.cards = [c for c in self.deck.cards if (c.suit, c.rank) not in hand_identity]
+
+        # ------------------------------------------------------------------
+        #  2)  Shuffle in cards the player bought during the previous shop
+        # ------------------------------------------------------------------
+        existing_ids = {(c.suit, c.rank) for c in self.deck.cards}
+        for bought in self.purchased_cards:
+            if (bought.suit, bought.rank) not in existing_ids:
+                self.deck.cards.append(bought)
+                existing_ids.add((bought.suit, bought.rank))
+        random.shuffle(self.deck.cards)
+        # Clear the queue for the next shopping phase
+        self.purchased_cards.clear()
+        
         original_count = self.deck.remaining_count()
-        self.deck.cards = [
-            c for c in self.deck.cards if (c.suit, c.rank) not in hand_identity
-        ]
         logger.info(
             "Session %s: Advancing to round %d. Deck reset (was %d), "
             "removed %d hand cards – %d cards remain.",

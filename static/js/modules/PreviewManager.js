@@ -1,6 +1,7 @@
 class PreviewManager {
-    constructor(apiClient) {
+    constructor(apiClient, cardManager) {
         this.apiClient = apiClient;
+        this.cardManager = cardManager;
         
         // DOM elements for live preview
         this.previewHandTypeElement = document.getElementById('preview-hand-type');
@@ -36,8 +37,9 @@ class PreviewManager {
             return;
         }
 
+        // Translate visual indices → actual `Card` objects using CardManager
         const cardsForPreview = Array.from(selectedCards)
-            .map(index => gameState.hand[index])
+            .map(idx => this.cardManager.getCardByVisualIndex(gameState, idx))
             .filter(card => card);
 
         if (cardsForPreview.length === 0) {

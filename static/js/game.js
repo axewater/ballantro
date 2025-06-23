@@ -11,9 +11,10 @@ class PokerGame {
         this.cardManager = new CardManager();
         this.screenManager = new ScreenManager();
         this.uiUpdater = new UIUpdater();
-        this.previewManager = new PreviewManager(this.apiClient);
+        this.previewManager = new PreviewManager(this.apiClient, this.cardManager);
         // will hold the exact Card models the user played last
         this.lastPlayedCards = [];
+        this.shopRequestInFlight = false;   //  ← new flag
 
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();
@@ -150,11 +151,14 @@ class PokerGame {
         }
 
         // capture the selected card-models _before_ state is reset
-        const selIdx = this.cardManager.getSelectedCards();
-        const current = this.gameState.getHand();
-        logClientHand("Hand BEFORE play hand request:", current);
+        const selIdx = this.cardManager.getSelectedCards();        // backend indices
+        const selVisual = Array.from(this.cardManager.selectedCards); // visual order
+        logClientHand("Hand BEFORE play hand request:", this.gameState.getHand());
         console.log("CLIENT: Selected card indices for play:", selIdx);
-        this.lastPlayedCards = selIdx.map(i => current[i]);
+        // Capture **exact** Card objects the player sees, using visual indices
+        this.lastPlayedCards = selVisual.map(vIdx =>
+            this.cardManager.getCardByVisualIndex(this.gameState.gameState, vIdx)
+        );
 
         try {
             const data = await this.apiClient.playHand(
@@ -468,6 +472,10 @@ class PokerGame {
     }
 
     async buyCard(cardIndex) {
+        if (this.shopRequestInFlight) return;          // ignore double clicks
+        this.shopRequestInFlight = true;
+        document.getElementById('next-round-btn').disabled = true; // lock N-Round
+
         try {
             const data = await this.apiClient.buyCard(this.gameState.sessionId, cardIndex);
             
@@ -495,10 +503,14 @@ class PokerGame {
         } catch (error) {
             console.error('Error buying card:', error);
             alert('Error buying card.');
+        } finally {
+            this.shopRequestInFlight = false;
+            document.getElementById('next-round-btn').disabled = false; // unlock
         }
     }
 
     async proceedToNextRound() {
+        if (this.shopRequestInFlight) return;  // wait until purchase finishes
         try {
             const data = await this.apiClient.proceedToNextRound(this.gameState.sessionId);
             
