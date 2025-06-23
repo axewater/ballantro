@@ -8,6 +8,12 @@ class CardManager {
         this.selectedCards = new Set();
         this.isSorting = false;
         this.activeSortType = null; // 'rank', 'suit', or null
+        /*  visualToLogical maps the current VISUAL index (what the user sees / clicks)
+            to the original index that the backend still expects.
+            It is re-created whenever a brand-new hand is received from the backend and
+            is recomposed on every visual sort so that we can always translate the
+            user’s selection back to backend indices accurately. */
+        this.visualToLogical = [];
         
         // Define order for sorting cards
         this.RANK_ORDER_MAP = { 
@@ -17,6 +23,19 @@ class CardManager {
         this.SUIT_ORDER_MAP = { 
             'spades': 4, 'hearts': 3, 'clubs': 2, 'diamonds': 1 
         };
+    }
+
+    /* --------------------------------------------------------------------- */
+    /*  Mapping helpers                                                      */
+    /* --------------------------------------------------------------------- */
+    resetMapping(handLength) {
+        // Identity mapping: visual i  → backend i
+        this.visualToLogical = Array.from({ length: handLength }, (_, i) => i);
+    }
+
+    _recomposeMapping(newVisualOrder) {
+        // Compose existing mapping with the newest permutation produced by sorting
+        this.visualToLogical = newVisualOrder.map(oldVisualIdx => this.visualToLogical[oldVisualIdx]);
     }
 
     createCardElement(card, isSelected = false) {
@@ -70,7 +89,8 @@ class CardManager {
     }
 
     getSelectedCards() {
-        return Array.from(this.selectedCards);
+        // Translate visual indices → backend indices before returning
+        return Array.from(this.selectedCards).map(vIdx => this.visualToLogical[vIdx]);
     }
 
     getSelectedCount() {
@@ -155,8 +175,8 @@ class CardManager {
         }
 
         const newVisualOrder = indexedHand.map(item => item.originalIndex);
-        const newHand = indexedHand.map(item => item.card);
-        const newSelectedCards = new Set();
+        const newHand = indexedHand.map(item => item.card); // purely for DOM building
+        const newSelectedCards = new Set(); // visual indices after sort
         
         indexedHand.forEach((item, newIndex) => {
             if (this.selectedCards.has(item.originalIndex)) {
@@ -189,7 +209,10 @@ class CardManager {
 
         cardContainer.replaceChildren(...reorderedElements);
 
-        // Update game state
+        // Update mapping BEFORE touching selectedCards
+        this._recomposeMapping(sortResult.newVisualOrder);
+
+        // Update game state (order only affects UI representation)
         const oldHand = gameState.hand ? [...gameState.hand] : null;
         gameState.hand = sortResult.newHand;
         this.selectedCards = sortResult.newSelectedCards;
@@ -259,6 +282,7 @@ class CardManager {
 
     resetSortState() {
         this.activeSortType = null;
+        // Mapping reset is handled explicitly when a fresh hand arrives
     }
 }
 

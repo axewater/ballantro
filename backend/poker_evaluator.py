@@ -111,6 +111,7 @@ class PokerEvaluator:
     def _is_straight(cls, ranks: List[Rank]) -> bool:
         """Check if ranks form a straight"""
         rank_values = [cls.RANK_VALUES[rank] for rank in ranks]
+        # Sort the rank values first to ensure we check consecutive values properly
         rank_values.sort()
         
         # Check for regular straight

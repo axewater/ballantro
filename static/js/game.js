@@ -79,6 +79,7 @@ class PokerGame {
                 console.log("CLIENT: New game started. Initial game state received:", data.game_state);
                 this.gameState.setGameState(data.game_state);
                 this.cardManager.resetSortState(); // Reset active sort
+                this.cardManager.resetMapping(this.gameState.getHand().length); // sync mapping
                 this.cardManager.clearSelection();
                 this.updateGameDisplay();
                 this.screenManager.showScreen('game');
@@ -106,12 +107,13 @@ class PokerGame {
         console.log("CLIENT: Selected card indices for discard:", this.cardManager.getSelectedCards());
         try {
             const data = await this.apiClient.drawCards(
-                this.gameState.sessionId, 
-                this.cardManager.getSelectedCards()
+                this.gameState.sessionId,
+                this.cardManager.getSelectedCards() // translated indices
             );
             if (data.success) {
                 console.log("CLIENT: Draw cards response received. Updated game state:", data.game_state);
                 this.gameState.setGameState(data.game_state);
+                this.cardManager.resetMapping(this.gameState.getHand().length); // fresh mapping after draw
                 this.cardManager.clearSelection();
                 
                 // Apply active sort if one is set, then update display and animate
@@ -148,11 +150,12 @@ class PokerGame {
         try {
             const data = await this.apiClient.playHand(
                 this.gameState.sessionId,
-                selIdx
+                selIdx // already logical indices
             );
             if (data.success) {
                 console.log("CLIENT: Play hand response received. Game state:", data.game_state, "Hand result:", data.hand_result);
                 this.gameState.setGameState(data.game_state);
+                this.cardManager.resetMapping(this.gameState.getHand().length); // fresh mapping after play
                 this.gameState.setHandResult(data.hand_result, data.round_complete, data.money_awarded_this_round);
                 logClientHand("Hand AFTER play hand response (new hand dealt):", this.gameState.getHand());
                 this.showScoringScreen();
@@ -307,6 +310,10 @@ class PokerGame {
     }
 
     displayHand() {
+        // Ensure mapping length matches current hand before (re-)render
+        if (this.cardManager.visualToLogical.length !== this.gameState.getHand().length) {
+            this.cardManager.resetMapping(this.gameState.getHand().length);
+        }
         logClientHand("Displaying hand in UI:", this.gameState.getHand());
         this.uiUpdater.displayHand(
             this.gameState.getHand(),
