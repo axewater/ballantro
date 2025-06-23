@@ -58,15 +58,16 @@ class UIUpdater {
         });
     }
 
-    showScoringScreen(handResult, selectedCards, hand, moneyAwardedThisRound, cardManager) {
+    showScoringScreen(handResult, playedCards, moneyAwardedThisRound, cardManager) {
+
         // Display played cards
         const playedCardsContainer = document.getElementById('played-cards');
         playedCardsContainer.innerHTML = '';
         
-        selectedCards.forEach(index => {
-            const card = hand[index];
-            const cardElement = cardManager.createCardElement(card, false);
-            playedCardsContainer.appendChild(cardElement);
+        // render exactly the Card objects passed in
+        playedCards.forEach(card => {
+            const el = cardManager.createCardElement(card, false);
+            playedCardsContainer.appendChild(el);
         });
 
         // Display hand result

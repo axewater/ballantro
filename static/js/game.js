@@ -6,7 +6,10 @@ class PokerGame {
         this.cardManager = new CardManager();
         this.screenManager = new ScreenManager();
         this.uiUpdater = new UIUpdater();
-        this.previewManager = new PreviewManager(this.apiClient);        
+        this.previewManager = new PreviewManager(this.apiClient);
+        // will hold the exact Card models the user played last
+        this.lastPlayedCards = [];
+
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();
         this.screenManager.showScreen('startup');
@@ -112,10 +115,15 @@ class PokerGame {
             return;
         }
 
+        // capture the selected card-models _before_ state is reset
+        const selIdx = this.cardManager.getSelectedCards();
+        const current = this.gameState.getHand();
+        this.lastPlayedCards = selIdx.map(i => current[i]);
+
         try {
             const data = await this.apiClient.playHand(
                 this.gameState.sessionId,
-                this.cardManager.getSelectedCards()
+                selIdx
             );
             if (data.success) {
                 this.gameState.setGameState(data.game_state);
@@ -203,12 +211,10 @@ class PokerGame {
     showScoringScreen() {
         this.uiUpdater.showScoringScreen(
             this.gameState.handResult,
-            this.cardManager.getSelectedCards(),
-            this.gameState.getHand(),
+            this.lastPlayedCards,                 // exact cards we just played
             this.gameState.moneyAwardedThisRound,
             this.cardManager
         );
-
         this.screenManager.showScreen('scoring');
         
         // Enhanced scoring animation
@@ -303,4 +309,3 @@ class PokerGame {
 document.addEventListener('DOMContentLoaded', () => {
     window.pokerGame = new PokerGame();
 });
-
