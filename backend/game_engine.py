@@ -175,7 +175,16 @@ class GameSession:
         
         # Get selected cards
         selected_cards = [self.hand[idx] for idx in selected_indices]
-        
+
+        # Immediately discard played cards and draw replacements
+        selected_indices.sort(reverse=True)
+        discarded_cards = [self.hand.pop(idx) for idx in selected_indices]
+        self.deck.discard(discarded_cards)
+        # Refill hand up to max_hand_size
+        draw_count = min(len(discarded_cards), self.deck.remaining_count())
+        if draw_count > 0:
+            self.hand.extend(self.deck.draw(draw_count))
+
         # Evaluate hand
         hand_result = PokerEvaluator.evaluate_hand(selected_cards)
         
