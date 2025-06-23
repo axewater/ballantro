@@ -195,26 +195,47 @@ class GameSession:
             if idx < 0 or idx >= len(self.hand):
                 raise ValueError(f"Invalid card index: {idx}")
         
-        # Get selected cards
-        selected_cards = [self.hand[idx] for idx in selected_indices]
-        logger.info(f"Session {self.session_id}: Cards selected for play: {[str(c) for c in selected_cards]}")
+        # Get the actual Card objects that were selected by the player for this hand
+        played_cards_for_eval = [self.hand[idx] for idx in selected_indices]
+        logger.info(f"Session {self.session_id}: Cards selected for play: {[str(c) for c in played_cards_for_eval]}")
 
-        # Immediately discard played cards and draw replacements
-        selected_indices.sort(reverse=True)
-        discarded_cards = [self.hand.pop(idx) for idx in selected_indices]
-        self.deck.discard(discarded_cards)
-        logger.info(f"Session {self.session_id}: Played cards removed from hand. Discarded: {[str(c) for c in discarded_cards]}")
+        # Determine which cards from the original hand were *not* played (these are kept)
+        # and which were played (these are discarded).
+        kept_cards_in_hand = []
+        played_cards_to_discard_pile = []
+        
+        # Create a set of selected indices for efficient lookup
+        played_indices_set = set(selected_indices)
 
-        # Refill hand up to max_hand_size
-        draw_count = min(len(discarded_cards), self.deck.remaining_count())
-        replenished_cards = []
-        if draw_count > 0:
-            replenished_cards = self.deck.draw(draw_count)
-            self.hand.extend(replenished_cards)
-        logger.info(f"Session {self.session_id}: Replenished hand with: {[str(c) for c in replenished_cards]}. Current hand: {[str(c) for c in self.hand]}")
+        for i, card_in_original_hand in enumerate(self.hand):
+            if i in played_indices_set:
+                played_cards_to_discard_pile.append(card_in_original_hand)
+            else:
+                kept_cards_in_hand.append(card_in_original_hand)
+        
+        # Update the player's hand to only contain the cards they kept
+        self.hand = kept_cards_in_hand
+        logger.info(f"Session {self.session_id}: Cards kept in hand: {[str(c) for c in self.hand]}")
+        
+        # Add the played cards to the deck's discard pile
+        self.deck.discard(played_cards_to_discard_pile)
+        logger.info(f"Session {self.session_id}: Played cards added to discard pile: {[str(c) for c in played_cards_to_discard_pile]}")
+
+        # Replenish the player's hand by drawing new cards to replace those that were played
+        num_cards_that_were_played = len(played_cards_to_discard_pile) # This will be 5
+        
+        # Determine how many new cards to draw
+        actual_draw_count = min(num_cards_that_were_played, self.deck.remaining_count())
+        
+        newly_drawn_cards = []
+        if actual_draw_count > 0:
+            newly_drawn_cards = self.deck.draw(actual_draw_count)
+            self.hand.extend(newly_drawn_cards) # Add newly drawn cards to the kept cards
+        
+        logger.info(f"Session {self.session_id}: Replenished hand with: {[str(c) for c in newly_drawn_cards]}. Current hand now: {[str(c) for c in self.hand]}")
 
         # Evaluate hand
-        hand_result = PokerEvaluator.evaluate_hand(selected_cards)
+        hand_result = PokerEvaluator.evaluate_hand(played_cards_for_eval)
         
         # Update score
         self.total_score += hand_result.total_score
