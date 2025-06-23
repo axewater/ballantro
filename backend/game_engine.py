@@ -84,7 +84,7 @@ class GameSession:
     """Individual game session managing one player's game"""
     
     # Round progression requirements
-    ROUND_TARGETS = {1: 300, 2: 450, 3: 600}
+    ROUND_TARGETS = {1: 300, 2: 750, 3: 1250}
     
     def __init__(self, session_id: str):
         self.session_id = session_id
