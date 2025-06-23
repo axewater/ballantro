@@ -59,7 +59,13 @@ class UIUpdater {
         hand.forEach((card, index) => {
             const cardElement = cardManager.createCardElement(card, selectedCards.has(index));
             cardElement.dataset.index = index;
-            cardElement.addEventListener('click', () => onCardClick(index, cardElement));
+            /*  Use the live dataset.index each time the card is clicked.
+                After a sort _applySortAnimation updates dataset.index, so this
+                handler will automatically pass the new, correct visual index. */
+            cardElement.addEventListener('click', () => {
+                const currentIndex = parseInt(cardElement.dataset.index, 10);
+                onCardClick(currentIndex, cardElement);
+            });
             this.elements.playerHand.appendChild(cardElement);
         });
     }

@@ -116,14 +116,23 @@ class PokerGame {
                 this.cardManager.resetMapping(this.gameState.getHand().length); // fresh mapping after draw
                 this.cardManager.clearSelection();
                 
-                // Apply active sort if one is set, then update display and animate
-                logClientHand("Hand AFTER draw response (before potential sort):", this.gameState.getHand());
+                /* ----------------------------------------------------------
+                 * IMPORTANT: Render the NEW hand to the DOM *before* we try
+                 * to apply any active sort.  The old flow attempted to run
+                 * the sort animation on the *previous* hand that was still
+                 * mounted in the DOM, causing mapping / card–tracking errors.
+                 * ---------------------------------------------------------- */
+                this.updateGameDisplay(); // renders raw, unsorted hand
+                this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+        
+                // Now (optionally) apply the active sort on the freshly drawn hand
+                logClientHand("Hand AFTER draw response (pre-sort DOM ready):", this.gameState.getHand());
                 await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
-                    this.updateGameDisplay(); // This will re-render hand if sorted
                     this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-                    this.animateCardDraw(); // Animate new/sorted hand
                 });
-
+                // Finally animate the arrival of the (sorted) new cards
+                this.animateCardDraw();
+ 
             } else {
                 console.error('Failed to draw cards:', data);
                 alert(data.message || 'Failed to draw cards.');
@@ -287,17 +296,20 @@ class PokerGame {
 
     async finalizeHandUpdateAndDisplay() {
         this.cardManager.clearSelection();
-        logClientHand("Hand in finalizeHandUpdateAndDisplay (before active sort):", this.gameState.getHand());
-        // Apply active sort before updating the display
+
+        /* ----------------------------------------------------------
+         * Same ordering fix as in drawCards(): render the new hand
+         * first, then (optionally) run the sort animation.
+         * ---------------------------------------------------------- */
+        this.updateGameDisplay();
+        this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+        this.screenManager.showScreen('game');
+
         await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
-            logClientHand("Hand in finalizeHandUpdateAndDisplay (after active sort, before display):", this.gameState.getHand());
-            this.updateGameDisplay(); // This will re-render hand if sorted
             this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-            this.screenManager.showScreen('game');
-            // If new cards were dealt (e.g. after playing a hand), animate them
-            // This might need a flag if we only want to animate on actual new cards vs just sort
-            this.animateCardDraw(); 
-        }, true); // Pass a flag to indicate this is part of finalize step for more specific logging if needed in CardManager
+        }, true);
+
+        this.animateCardDraw();
         console.log("CLIENT: Finalize hand update and display complete.");
     }
 
