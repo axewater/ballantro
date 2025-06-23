@@ -574,6 +574,15 @@ body {
     color: #bdc3c7; /* Lighter label for bonus */
 }
 
+/* Styling for individual card bonus items in score breakdown */
+.score-item.card-bonus-item .score-label {
+    color: #a29bfe; /* A distinct color for card bonus labels */
+}
+
+.score-item.card-bonus-item .score-value {
+    color: #dff9fb; /* A bright color for the bonus description */
+    font-size: 0.95rem; /* Slightly smaller if descriptions are long */
+}
 /* Victory screen */
 .victory-panel {
     padding: 50px;

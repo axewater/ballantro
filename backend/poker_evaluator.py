@@ -36,6 +36,7 @@ class PokerEvaluator:
         
         # ------------------------------------------------------------------ #
         # 1)  Calculate **card chips** & accumulated bonuses                #
+        #    Also, collect descriptions of applied bonuses.                 #
         # ------------------------------------------------------------------ #
         base_card_chips = sum(card._base_chip_value() for card in cards)
         bonus_chips = sum(card.bonus_chips() for card in cards)
@@ -44,11 +45,26 @@ class PokerEvaluator:
         # Determine hand type
         hand_type = cls._get_hand_type(cards)
         
+        # Collect applied bonus descriptions
+        applied_bonuses_descriptions: List[str] = []
+        for card in cards:
+            card_name_str = f"{card.rank.value} of {card.suit.value.capitalize()}" # e.g. "Ace of Spades"
+            if card.bonus_chips() > 0:
+                applied_bonuses_descriptions.append(
+                    f"{card_name_str}: +{card.bonus_chips()} Bonus Chips"
+                )
+            if card.bonus_multiplier() > 0:
+                applied_bonuses_descriptions.append(
+                    f"{card_name_str}: +{card.bonus_multiplier()} Bonus Multiplier"
+                )
+        
         # Get scoring information
         score_info = cls.HAND_SCORES[hand_type]
         base_chips = score_info["base_chips"]
         base_multiplier = score_info["multiplier"]
+        
         bonus_multiplier = sum(card.bonus_multiplier() for card in cards)
+        
         multiplier = base_multiplier + bonus_multiplier
         
         # Calculate total score: (card_chips + base_chips) * multiplier
@@ -63,7 +79,8 @@ class PokerEvaluator:
             multiplier=multiplier,
             card_chips=card_chips,
             total_score=total_score,
-            description=description
+            description=description,
+            applied_bonuses=applied_bonuses_descriptions
         )
     
     @classmethod

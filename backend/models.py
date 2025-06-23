@@ -86,6 +86,7 @@ class HandResult(BaseModel):
     card_chips: int
     total_score: int
     description: str
+    applied_bonuses: List[str] = [] # List of strings describing card-specific bonuses
 
 class GameState(BaseModel):
     session_id: str
