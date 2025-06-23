@@ -16,6 +16,20 @@ class PokerGame {
         this.previewBaseScoreElement = document.getElementById('preview-base-score');
         this.previewDescriptionElement = document.getElementById('preview-description');
 
+        // Hand Payouts Data (mirrors backend/poker_evaluator.py HAND_SCORES)
+        this.HAND_PAYOUTS = [
+            { name: "Straight Flush", base: 75, multiplier: 10 },
+            { name: "Four of a Kind", base: 60, multiplier: 8 },
+            { name: "Full House", base: 50, multiplier: 7 },
+            { name: "Flush", base: 40, multiplier: 6 },
+            { name: "Straight", base: 30, multiplier: 5 },
+            { name: "Three of a Kind", base: 25, multiplier: 4 },
+            { name: "Two Pair", base: 20, multiplier: 3 },
+            { name: "One Pair", base: 15, multiplier: 2 },
+            { name: "High Card", base: 10, multiplier: 2 },
+        ];
+
+        this.populatePayoutsTable(); // Populate the table on initialization
         this.initializeEventListeners();
         this.showScreen('startup');
     }
@@ -30,6 +44,7 @@ class PokerGame {
         document.getElementById('play-hand-btn').addEventListener('click', () => this.playHand()); // Added async
         document.getElementById('sort-rank-btn').addEventListener('click', async () => await this.sortCardsByRank());
         document.getElementById('sort-suit-btn').addEventListener('click', async () => await this.sortCardsBySuit());
+        document.getElementById('show-payouts-btn').addEventListener('click', () => this.showPayoutsModal());
 
         // Scoring screen
         document.getElementById('continue-btn').addEventListener('click', () => this.continueGame());
@@ -48,6 +63,9 @@ class PokerGame {
         // Name modal
         document.getElementById('save-name-btn').addEventListener('click', () => this.saveVictoryScore());
         document.getElementById('cancel-name-btn').addEventListener('click', () => this.hideNameModal());
+
+        // Payouts modal
+        document.getElementById('close-payouts-btn').addEventListener('click', () => this.hidePayoutsModal());
         
         // Enter key in name inputs
         document.getElementById('player-name').addEventListener('keypress', (e) => {
@@ -231,6 +249,33 @@ class PokerGame {
 
     hideNameModal() {
         document.getElementById('name-modal').classList.remove('active');
+    }
+
+    showPayoutsModal() {
+        document.getElementById('payouts-modal').classList.add('active');
+    }
+
+    hidePayoutsModal() {
+        document.getElementById('payouts-modal').classList.remove('active');
+    }
+
+    populatePayoutsTable() {
+        const tableBody = document.getElementById('payouts-table-body');
+        if (!tableBody) {
+            console.error("Payouts table body not found!");
+            return;
+        }
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        this.HAND_PAYOUTS.forEach(payout => {
+            const row = tableBody.insertRow();
+            const cellHand = row.insertCell();
+            const cellBase = row.insertCell();
+            const cellMultiplier = row.insertCell();
+            cellHand.textContent = payout.name;
+            cellBase.textContent = payout.base;
+            cellMultiplier.textContent = `×${payout.multiplier}`;
+        });
     }
 
     showScoringScreen() {

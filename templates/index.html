@@ -31,6 +31,10 @@
                     <span id="preview-base-score" class="preview-value">-</span>
                 </div>
                 <p id="preview-description" class="preview-description-text"></p>
+                <button id="show-payouts-btn" class="btn btn-secondary btn-small">
+                    <span class="btn-icon">🏆</span>
+                    Payouts
+                </button>
             </div>
 
             <!-- Wrapper for the rest of the game content -->
@@ -273,6 +277,26 @@
                     <button id="save-name-btn" class="btn btn-primary">Save</button>
                     <button id="cancel-name-btn" class="btn btn-secondary">Cancel</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Payouts Modal -->
+        <div id="payouts-modal" class="modal">
+            <div class="modal-content glass-panel">
+                <h3>Hand Rankings & Payouts</h3>
+                <div class="payouts-table-container">
+                    <table id="payouts-table">
+                        <thead>
+                            <tr>
+                                <th>Hand</th>
+                                <th>Base Chips</th>
+                                <th>Multiplier</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payouts-table-body"></tbody>
+                    </table>
+                </div>
+                <button id="close-payouts-btn" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>

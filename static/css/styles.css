@@ -228,6 +228,14 @@ body {
     font-size: 1.2rem;
 }
 
+.btn-small {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    min-width: auto; /* Override min-width for smaller buttons */
+    margin-top: 10px; /* Space above the button */
+    width: 100%; /* Make it full width of its container */
+}
+
 /* Game screen layout */
 #game-screen {
     display: flex; /* Enable flexbox for side-by-side layout */
@@ -918,4 +926,43 @@ body {
     text-align: center;
     min-height: 30px; /* Reserve space for two lines */
     line-height: 1.4;
+}
+
+/* Payouts Modal Specific Styles */
+#payouts-modal .modal-content {
+    max-width: 500px; /* Wider modal for table */
+    padding: 30px;
+}
+
+.payouts-table-container {
+    max-height: 60vh; /* Limit height and allow scrolling */
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+#payouts-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: white;
+}
+
+#payouts-table th,
+#payouts-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#payouts-table th {
+    background-color: rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    position: sticky; /* Sticky header for scrollable table */
+    top: 0;
+    backdrop-filter: blur(5px); /* Blur for sticky header */
+}
+
+#payouts-table tbody tr:last-child td {
+    border-bottom: none;
 }
