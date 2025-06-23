@@ -92,6 +92,7 @@ class GameSession:
         self.hands_played = 0
         self.draws_used = 0
         self.total_score = 0
+        self.money = 0  # Player's accumulated money
         self.deck = Deck()
         self.hand: List[Card] = []
         self.is_game_over = False
@@ -113,6 +114,7 @@ class GameSession:
             hands_played=self.hands_played,
             draws_used=self.draws_used,
             total_score=self.total_score,
+            money=self.money,
             hand=self.hand.copy(),
             deck_remaining=self.deck.remaining_count(),
             round_target=self.ROUND_TARGETS.get(self.current_round, 0),
@@ -183,8 +185,14 @@ class GameSession:
         
         # Check round progression
         round_complete = False
+        money_awarded_this_round = 0
         if self.total_score >= self.ROUND_TARGETS.get(self.current_round, float('inf')):
             round_complete = True
+            # Award money: $5 for round 1, $6 for round 2, $7 for round 3
+            # Cumulative: $5 + (current_round - 1)
+            money_awarded_this_round = 5 + (self.current_round - 1)
+            self.money += money_awarded_this_round
+
             if self.current_round >= 3:
                 # Victory!
                 self.is_victory = True
@@ -208,10 +216,10 @@ class GameSession:
         return {
             "hand_result": hand_result.dict(),
             "game_state": self.get_state().dict(),
-            "round_complete": round_complete
+            "round_complete": round_complete,
+            "money_awarded_this_round": money_awarded_this_round
         }
     
     def _deal_initial_hand(self):
         """Deal initial hand of cards"""
         self.hand = self.deck.draw(self.max_hand_size)
-

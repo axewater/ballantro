@@ -64,6 +64,7 @@ class GameState(BaseModel):
     hands_played: int
     draws_used: int
     total_score: int
+    money: int = 0
     hand: List[Card]
     deck_remaining: int
     round_target: int
@@ -81,4 +82,3 @@ class HighScore(BaseModel):
     name: str
     score: int
     timestamp: str
-

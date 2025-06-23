@@ -535,6 +535,13 @@ body {
     font-weight: 700;
     font-size: 1.1rem;
 }
+.score-item#round-bonus-item .score-value {
+    color: #2ecc71; /* Green color for money */
+    font-weight: bold;
+}
+.score-item#round-bonus-item .score-label {
+    color: #bdc3c7; /* Lighter label for bonus */
+}
 
 /* Victory screen */
 .victory-panel {
@@ -844,4 +851,3 @@ body {
 .sorting {
     animation: cardSort 0.5s ease;
 }
-

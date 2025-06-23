@@ -133,6 +133,7 @@ class PokerGame {
                 this.gameState = data.game_state;
                 this.handResult = data.hand_result;
                 this.roundComplete = data.round_complete;
+                this.moneyAwardedThisRound = data.money_awarded_this_round;
                 this.showScoringScreen();
             } else {
                 console.error('Failed to play hand:', data);
@@ -244,6 +245,16 @@ class PokerGame {
         document.getElementById('base-chips').textContent = '0';
         document.getElementById('multiplier').textContent = '×1';
         document.getElementById('hand-score').textContent = '0';
+        
+        // Money awarded display
+        const roundBonusItem = document.getElementById('round-bonus-item');
+        const roundBonusMoney = document.getElementById('round-bonus-money');
+        if (this.moneyAwardedThisRound > 0) {
+            roundBonusMoney.textContent = `$${this.moneyAwardedThisRound}`;
+            roundBonusItem.style.display = 'flex'; // Show the item
+        } else {
+            roundBonusItem.style.display = 'none'; // Hide if no money awarded
+        }
 
         this.showScreen('scoring');
         
@@ -300,6 +311,7 @@ class PokerGame {
         // Update game info
         document.getElementById('current-round').textContent = this.gameState.current_round;
         document.getElementById('total-score').textContent = this.gameState.total_score;
+        document.getElementById('player-money').textContent = `$${this.gameState.money}`;
         document.getElementById('round-target').textContent = this.gameState.round_target;
         document.getElementById('hands-played').textContent = this.gameState.hands_played;
         document.getElementById('max-hands').textContent = this.gameState.max_hands;
