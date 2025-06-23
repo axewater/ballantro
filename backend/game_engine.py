@@ -223,3 +223,7 @@ class GameSession:
     def _deal_initial_hand(self):
         """Deal initial hand of cards"""
         self.hand = self.deck.draw(self.max_hand_size)
+    
+    def get_remaining_deck_cards(self) -> List[Card]:
+        """Returns a copy of the cards currently in the deck."""
+        return self.deck.cards.copy()

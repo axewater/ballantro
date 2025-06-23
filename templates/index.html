@@ -110,7 +110,7 @@
 
                 <!-- Deck Info -->
                 <div class="deck-info">
-                    <div class="glass-panel deck-panel">
+                    <div id="deck-info-panel" class="glass-panel deck-panel clickable">
                         <div class="deck-icon">🂠</div>
                         <div class="deck-count">
                             <span id="deck-remaining">52</span> cards remaining
@@ -297,6 +297,23 @@
                     </table>
                 </div>
                 <button id="close-payouts-btn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+
+        <!-- Remaining Deck Modal -->
+        <div id="remaining-deck-modal" class="modal">
+            <div class="modal-content glass-panel remaining-deck-content">
+                <h3>Cards Remaining in Deck</h3>
+                <div id="remaining-deck-display" class="remaining-deck-grid">
+                    <!-- Cards will be dynamically added here by suit -->
+                    <div class="suit-row" id="remaining-spades"><h4>Spades ♠</h4><div class="card-list"></div></div>
+                    <div class="suit-row" id="remaining-hearts"><h4>Hearts ♥</h4><div class="card-list"></div></div>
+                    <div class="suit-row" id="remaining-clubs"><h4>Clubs ♣</h4><div class="card-list"></div></div>
+                    <div class="suit-row" id="remaining-diamonds"><h4>Diamonds ♦</h4><div class="card-list"></div></div>
+                </div>
+                <button id="close-remaining-deck-btn" class="btn btn-secondary">
+                    Close
+                </button>
             </div>
         </div>
     </div>

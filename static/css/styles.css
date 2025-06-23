@@ -439,6 +439,10 @@ body {
     gap: 10px;
 }
 
+.deck-panel.clickable {
+    cursor: pointer;
+}
+
 .deck-icon {
     font-size: 1.5rem;
 }
@@ -965,4 +969,53 @@ body {
 
 #payouts-table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* Remaining Deck Modal Specific Styles */
+.remaining-deck-content {
+    max-width: 700px; /* Wider modal for card display */
+    padding: 30px;
+}
+
+.remaining-deck-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between suit rows */
+    margin-bottom: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px; /* For scrollbar */
+}
+
+.suit-row {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 10px 15px;
+}
+
+.suit-row h4 {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 5px;
+}
+
+.suit-row .card-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mini-card {
+    background: white;
+    color: #333;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }

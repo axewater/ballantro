@@ -15,6 +15,7 @@ class PokerGame {
         this.previewHandTypeElement = document.getElementById('preview-hand-type');
         this.previewBaseScoreElement = document.getElementById('preview-base-score');
         this.previewDescriptionElement = document.getElementById('preview-description');
+        this.deckInfoPanel = document.getElementById('deck-info-panel');
 
         // Hand Payouts Data (mirrors backend/poker_evaluator.py HAND_SCORES)
         this.HAND_PAYOUTS = [
@@ -45,6 +46,7 @@ class PokerGame {
         document.getElementById('sort-rank-btn').addEventListener('click', async () => await this.sortCardsByRank());
         document.getElementById('sort-suit-btn').addEventListener('click', async () => await this.sortCardsBySuit());
         document.getElementById('show-payouts-btn').addEventListener('click', () => this.showPayoutsModal());
+        this.deckInfoPanel.addEventListener('click', () => this.showRemainingDeckModal());
 
         // Scoring screen
         document.getElementById('continue-btn').addEventListener('click', () => this.continueGame());
@@ -66,6 +68,9 @@ class PokerGame {
 
         // Payouts modal
         document.getElementById('close-payouts-btn').addEventListener('click', () => this.hidePayoutsModal());
+
+        // Remaining Deck modal
+        document.getElementById('close-remaining-deck-btn').addEventListener('click', () => this.hideRemainingDeckModal());
         
         // Enter key in name inputs
         document.getElementById('player-name').addEventListener('keypress', (e) => {
@@ -95,6 +100,7 @@ class PokerGame {
                 this.showScreen('game');
                 this.updateLivePreview(); // Clear preview for new game
                 this.animateCardDraw();
+                this.updateDeckRemainingDisplay(); // Update deck count
             } else {
                 console.error('Failed to start new game:', data);
             }
@@ -125,6 +131,7 @@ class PokerGame {
                 this.gameState = data.game_state;
                 this.selectedCards.clear();
                 this.updateGameDisplay();
+                this.updateDeckRemainingDisplay(); // Update deck count
                 this.updateLivePreview(); // Update preview after draw
                 this.animateCardDraw();
             } else {
@@ -259,6 +266,78 @@ class PokerGame {
         document.getElementById('payouts-modal').classList.remove('active');
     }
 
+    async showRemainingDeckModal() {
+        if (!this.sessionId) {
+            console.warn("No active game session to show remaining deck.");
+            return;
+        }
+        try {
+            const response = await fetch(`/api/remaining_deck/${this.sessionId}`);
+            const data = await response.json();
+
+            if (data.success && data.remaining_cards) {
+                this.populateRemainingDeckDisplay(data.remaining_cards);
+                document.getElementById('remaining-deck-modal').classList.add('active');
+            } else {
+                console.error('Failed to fetch remaining deck:', data.detail || 'Unknown error');
+                alert('Could not load remaining cards.');
+            }
+        } catch (error) {
+            console.error('Error fetching remaining deck:', error);
+            alert('Error loading remaining cards.');
+        }
+    }
+
+    hideRemainingDeckModal() {
+        document.getElementById('remaining-deck-modal').classList.remove('active');
+    }
+
+    populateRemainingDeckDisplay(cards) {
+        const suitContainers = {
+            spades: document.getElementById('remaining-spades').querySelector('.card-list'),
+            hearts: document.getElementById('remaining-hearts').querySelector('.card-list'),
+            clubs: document.getElementById('remaining-clubs').querySelector('.card-list'),
+            diamonds: document.getElementById('remaining-diamonds').querySelector('.card-list')
+        };
+
+        // Clear previous cards
+        for (const suit in suitContainers) {
+            suitContainers[suit].innerHTML = '';
+        }
+
+        // Group cards by suit
+        const cardsBySuit = { spades: [], hearts: [], clubs: [], diamonds: [] };
+        cards.forEach(card => {
+            if (cardsBySuit[card.suit]) {
+                cardsBySuit[card.suit].push(card);
+            }
+        });
+
+        // Sort cards within each suit by rank (descending) and display
+        for (const suit in cardsBySuit) {
+            cardsBySuit[suit].sort((a, b) => {
+                return this.RANK_ORDER_MAP[b.rank] - this.RANK_ORDER_MAP[a.rank];
+            });
+
+            cardsBySuit[suit].forEach(card => {
+                const miniCardElement = document.createElement('div');
+                miniCardElement.className = 'mini-card';
+                let suitSymbol = this.getSuitSymbol(card.suit);
+                miniCardElement.textContent = `${card.rank}${suitSymbol}`;
+                // Optional: Color red suits
+                if (card.suit === 'hearts' || card.suit === 'diamonds') {
+                    miniCardElement.style.color = '#e74c3c'; // Red
+                } else {
+                    miniCardElement.style.color = '#2c3e50'; // Black
+                }
+                suitContainers[suit].appendChild(miniCardElement);
+            });
+            if (cardsBySuit[suit].length === 0) {
+                suitContainers[suit].innerHTML = '<em>No cards of this suit remaining.</em>';
+            }
+        }
+    }
+
     populatePayoutsTable() {
         const tableBody = document.getElementById('payouts-table-body');
         if (!tableBody) {
@@ -349,12 +428,14 @@ class PokerGame {
                     this.updateGameDisplay();
                     this.updateLivePreview(); // Update preview after round change
                     this.showScreen('game');
+                    this.updateDeckRemainingDisplay();
                 });
             } else {
                 this.selectedCards.clear();
                 this.updateGameDisplay();
                 this.updateLivePreview(); // Update preview after continuing hand
                 this.showScreen('game');
+                this.updateDeckRemainingDisplay();
             }
         }
     }
@@ -384,6 +465,7 @@ class PokerGame {
         
         // Update selection count
         document.getElementById('selection-count').textContent = this.selectedCards.size;
+        this.updateDeckRemainingDisplay();
     }
 
     displayHand() {
@@ -396,6 +478,11 @@ class PokerGame {
             cardElement.addEventListener('click', () => this.toggleCardSelection(index, cardElement));
             handContainer.appendChild(cardElement);
         });
+    }
+
+    updateDeckRemainingDisplay() {
+        const deckRemainingElement = document.getElementById('deck-remaining');
+        deckRemainingElement.textContent = `${this.gameState.deck_remaining}`;
     }
 
     createCardElement(card, isSelected) {
@@ -440,6 +527,7 @@ class PokerGame {
 
         // Update live preview
         this.updateLivePreview();
+        this.updateDeckRemainingDisplay();
     }
 
     async updateLivePreview() {

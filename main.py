@@ -102,5 +102,17 @@ async def preview_hand(cards: list[Card]):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/api/remaining_deck/{session_id}")
+async def get_remaining_deck(session_id: str):
+    """Get the list of cards remaining in the deck for a session"""
+    try:
+        session = game_engine._get_session(session_id) # Access session directly
+        remaining_cards = session.get_remaining_deck_cards()
+        return {"success": True, "remaining_cards": [card.dict() for card in remaining_cards]}
+    except ValueError as e: # Session not found
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
