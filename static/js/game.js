@@ -18,6 +18,9 @@ class PokerGame {
         this.currentShopCards = []; // To store details of cards currently in the shop
         this.shopRequestInFlight = false;   //  ← new flag
 
+        // Sound for cards being dealt
+        this.cardDealSound = new Audio('/static/assets/sound/cards_dealt.mp3');
+
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();
         this.screenManager.showScreen('startup');
@@ -387,6 +390,12 @@ class PokerGame {
     animateCardDraw() {
         const cards = document.querySelectorAll('#player-hand .card');
         console.log("CLIENT: Animating card draw for", cards.length, "cards.");
+        if (cards.length > 0) {
+            this.cardDealSound.currentTime = 0; // Rewind to start
+            this.cardDealSound.play().catch(error => {
+                console.warn("CLIENT: Could not play card deal sound:", error);
+            });
+        }
         window.gameAnimations.queueAnimation(() => 
             window.gameAnimations.animateCardDeal(Array.from(cards))
         );
