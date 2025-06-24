@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from enum import Enum
+from .turbo_chips import TurboChip
 
 class Suit(str, Enum):
     HEARTS = "hearts"
@@ -105,6 +106,8 @@ class GameState(BaseModel):
     max_draws: int = 3
     is_game_over: bool = False
     is_victory: bool = False
+    # active turbo chips (max 8)
+    inventory: list[TurboChip] = []
 
 class GameAction(BaseModel):
     session_id: str

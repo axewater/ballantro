@@ -306,8 +306,8 @@ body {
 
 .hand-panel {
     width: 100%;
-    padding: 30px;
-    min-height: 300px;
+    padding: 10px;
+    min-height: 250px;
 }
 
 .hand-title {
@@ -904,6 +904,7 @@ body {
     align-self: flex-start; /* Aligns to the top of the flex container */
     /* position: sticky; top: 20px; */ /* Optional: make it sticky */
     height: fit-content; /* Adjust height to content */
+    /* leave space for inventory */
 }
 
 .live-preview-panel:hover {
@@ -1401,4 +1402,24 @@ body{background:#000;}
     color: #4facfe;
     font-weight: 700;
     text-shadow: 0 2px 15px rgba(79, 172, 254, 0.5);
+}
+
+/* ------------------------------------------------------------------ */
+/* Turbo-Chip Inventory Panel                                         */
+/* ------------------------------------------------------------------ */
+.inventory-panel{
+    width:200px;
+    padding:14px;
+    color:white;
+    position: fixed; 
+    bottom: 20px;
+    left: 20px;
+}
+.inventory-slots{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.turbo-chip{
+    background:rgba(0,229,255,.15);
+    border:1px solid rgba(0,229,255,.4);
+    border-radius:6px;padding:6px;
+    font-size:.7rem;text-align:center;
+    backdrop-filter:blur(6px);
 }

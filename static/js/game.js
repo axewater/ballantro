@@ -392,15 +392,17 @@ class PokerGame {
         document.getElementById('shop-money-display').textContent = `$${shopState.money}`;
 
         // Store current shop cards for logging purposes
-        this.currentShopCards = shopState.shop_cards ? [...shopState.shop_cards] : [];
+        this.currentShopCards = shopState.shop_items ? [...shopState.shop_items] : [];
         
         // Clear existing shop cards
         const shopCardsContainer = document.getElementById('shop-cards');
         shopCardsContainer.innerHTML = '';
         
         // Add shop cards
-        shopState.shop_cards.forEach((card, index) => {
-            const cardElement = this.createShopCardElement(card, index);
+        shopState.shop_items.forEach((item,index)=>{
+            const cardElement = item.item_type==='card'
+                 ? this.createShopCardElement(item,index)
+                 : this.createTurboChipElement(item,index);
             shopCardsContainer.appendChild(cardElement);
         });
         
@@ -447,6 +449,17 @@ class PokerGame {
         return cardElement;
     }
 
+    createTurboChipElement(chip,index){
+        const el=document.createElement('div');
+        el.className='shop-card turbo';
+        el.innerHTML=`<div class="card-rank">⚡</div><div class="card-suit">${chip.name}</div>`;
+        const price=document.createElement('div');
+        price.className='card-price';price.textContent='$1';
+        el.appendChild(price);
+        el.addEventListener('click',()=>this.buyCard(index));
+        return el;
+    }
+
     async rerollShop() {
         try {
             const data = await this.apiClient.rerollShop(this.gameState.sessionId);
@@ -454,7 +467,7 @@ class PokerGame {
             if (data.success) {
                 // Update shop display with new cards
                 this.updateShopDisplay({
-                    shop_cards: data.shop_cards,
+                    shop_items: data.shop_items,
                     money: data.money,
                     reroll_cost: 1,
                     card_cost: 3
@@ -489,8 +502,10 @@ class PokerGame {
                 
                 // Enhanced logging for purchase confirmation
                 if (boughtCardDetails) {
-                    const cardSuit = boughtCardDetails.suit.charAt(0).toUpperCase() + boughtCardDetails.suit.slice(1);
-                    const cardName = `${this.formatCardRank(boughtCardDetails.rank)} of ${cardSuit}`;
+                    const cardSuit = boughtCardDetails.suit ? (boughtCardDetails.suit.charAt(0).toUpperCase() + boughtCardDetails.suit.slice(1)) : "";
+                    const cardName = boughtCardDetails.item_type === "card"
+                        ? `${this.formatCardRank(boughtCardDetails.rank)} of ${cardSuit}`
+                        : boughtCardDetails.name;
                     const deckCount = this.gameState.getDeckRemaining();
                     console.log(`PURCHASE CONFIRMATION: Bought '${cardName}'. Added to deck. Total cards: ${deckCount}`);
                 } else {

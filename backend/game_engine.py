@@ -6,12 +6,31 @@ from typing import Dict, List, Optional, Tuple
 from .models import GameState, Card, HandResult, HighScore, Suit, Rank
 from .deck import Deck
 from .poker_evaluator import PokerEvaluator
+from .turbo_chips import TurboChip, TURBO_CHIP_REGISTRY, AVAILABLE_TURBO_IDS
 import logging
 import random
 
 # Configure basic logging for the server
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - SERVER: %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ------------------------------------------------------------------ #
+#  Turbo-Chip → PokerEvaluator integration via monkey-patch         #
+# ------------------------------------------------------------------ #
+_SESSION_INVENTORIES: dict[str, list[TurboChip]] = {}
+
+def _inject_turbo(session_id: str, res: "HandResult"):
+    inv = _SESSION_INVENTORIES.get(session_id, [])
+    total = res.total_score
+    applied = list(res.applied_bonuses)
+    for chip in inv:
+        total = chip.apply_fn(total)
+        applied.append(f"Turbo '{chip.name}' applied")
+    res.total_score = total
+    res.applied_bonuses = applied
+    return res
+
+PokerEvaluator._apply_turbo = staticmethod(_inject_turbo)  # type: ignore
 
 class GameEngine:
     """Main game engine handling all game logic and state management"""
@@ -145,13 +164,23 @@ class GameEngine:
         # Create and return a new card with the effect
         return Card(suit=random_suit, rank=random_rank, effects=[effect])
     
-    def generate_shop_cards(self, count: int = 3) -> List[Card]:
-        """Generate random cards for the shop"""
-        shop_cards = []
+    # -------- NEW -------- #
+    def generate_shop_items(self, count: int = 3) -> list[dict]:
+        """
+        Return a list of `count` shop items.
+        75 % Card • 25 % TurboChip
+        Each item is serialisable and contains a key `item_type`.
+        """
+        items: list[dict] = []
         for _ in range(count):
-            shop_cards.append(self._generate_random_card())
-        
-        return shop_cards
+            if random.random() < 0.25:  # Turbo-Chip
+                chip_id = random.choice(AVAILABLE_TURBO_IDS)
+                chip = TURBO_CHIP_REGISTRY[chip_id]
+                items.append({"item_type": "turbo", **chip.dict()})
+            else:
+                card = self._generate_random_card()
+                items.append({"item_type": "card", **card.dict()})
+        return items
 
 class GameSession:
     """Individual game session managing one player's game"""
@@ -173,9 +202,14 @@ class GameSession:
 
         # Shop state
         self.in_shop = False
-        self.shop_cards = []
+        self.shop_items: list[dict] = []
+
         self.shop_reroll_cost = 1
         self.shop_card_cost = 3
+        self.turbo_chip_cost = 1
+
+        # Turbo inventory
+        self.inventory: list[TurboChip] = []
 
         self.purchased_cards: List[Card] = []  # Cards bought in shop, shuffled into deck next round
         
@@ -203,10 +237,12 @@ class GameSession:
             max_hands=self.max_hands,
             max_hand_size=self.max_hand_size, 
             in_shop=self.in_shop,
-            shop_cards=self.shop_cards.copy() if self.shop_cards else [],
+            shop_cards=[],
+            shop_items=self.shop_items.copy() if self.shop_items else [],
             max_draws=self.max_draws,
             is_game_over=self.is_game_over,
-            is_victory=self.is_victory
+            is_victory=self.is_victory,
+            inventory=self.inventory.copy(),
         )
     
     def draw_cards(self, selected_indices: List[int]) -> GameState:
@@ -302,10 +338,14 @@ class GameSession:
         
         logger.info(f"Session {self.session_id}: Replenished hand with: {[str(c) for c in newly_drawn_cards]}. Current hand now: {[str(c) for c in self.hand]}")
 
-        # Evaluate hand
-        hand_result = PokerEvaluator.evaluate_hand(played_cards_for_eval)
-        
-        # Update score
+        # Provide inventory to turbo hook, then compute base score and apply any turbo chips
+        _SESSION_INVENTORIES[self.session_id] = self.inventory
+        # 1) Evaluate base hand
+        raw_result = PokerEvaluator.evaluate_hand(played_cards_for_eval)
+        # 2) Apply any active turbo‐chips (monkey‐patched hook)
+        hand_result = PokerEvaluator._apply_turbo(self.session_id, raw_result)
+
+        # Update score (already turbo-adjusted)
         self.total_score += hand_result.total_score
         self.hands_played += 1
         logger.info(f"Session {self.session_id}: Hand evaluated. Type: {hand_result.hand_type}, Score: {hand_result.total_score}. Total score: {self.total_score}")
@@ -331,8 +371,8 @@ class GameSession:
                 # The actual round advancement happens in proceed_to_next_round
                 logger.info(f"Session {self.session_id}: Entering shop for round {self.current_round + 1}. Hand carried over: {[str(c) for c in self.hand]}")
                 
-                # Generate shop cards
-                self.shop_cards = game_engine.generate_shop_cards(3)
+                # Generate shop items
+                self.shop_items = game_engine.generate_shop_items(3)
         else:
             # Check if game over (max hands reached)
             if self.hands_played >= self.max_hands:
@@ -356,7 +396,7 @@ class GameSession:
             raise ValueError("Not currently in shop phase")
         
         return {
-            "shop_cards": [card.dict() for card in self.shop_cards],
+            "shop_items": self.shop_items,
             "money": self.money,
             "reroll_cost": self.shop_reroll_cost,
             "card_cost": self.shop_card_cost,
@@ -375,52 +415,47 @@ class GameSession:
         self.money -= self.shop_reroll_cost
         logger.info(f"Session {self.session_id}: Rerolled shop cards for ${self.shop_reroll_cost}. Money remaining: ${self.money}")
         
-        # Generate new shop cards
-        self.shop_cards = game_engine.generate_shop_cards(3)
+        # Generate new shop items
+        self.shop_items = game_engine.generate_shop_items(3)
         
         return {
-            "shop_cards": [card.dict() for card in self.shop_cards],
+            "shop_items": self.shop_items,
             "money": self.money
         }
     
     def buy_card(self, card_index: int) -> Dict:
-        """Buy a card from the shop for $3"""
+        """Buy a card or turbo chip from the shop"""
         if not self.in_shop:
             raise ValueError("Not currently in shop phase")
         
-        if card_index < 0 or card_index >= len(self.shop_cards):
+        if card_index < 0 or card_index >= len(self.shop_items):
             raise ValueError(f"Invalid card index: {card_index}")
         
-        if self.money < self.shop_card_cost:
-            raise ValueError(f"Not enough money. Need ${self.shop_card_cost}, have ${self.money}")
-        
-        # Get the card to buy
-        card_to_buy = self.shop_cards[card_index]
+        item = self.shop_items[card_index]
+        cost = self.turbo_chip_cost if item["item_type"] == "turbo" else self.shop_card_cost
+        if self.money < cost:
+            raise ValueError(f"Not enough money. Need ${cost}, have ${self.money}")
+        self.money -= cost
 
-        # Deduct money *before* mutating state so UI reflects it immediately
-        self.money -= self.shop_card_cost
+        if item["item_type"] == "card":
+            card_to_buy = Card(**item)
+            self.deck.cards.append(card_to_buy)
+            random.shuffle(self.deck.cards)
+            self.purchased_cards.append(card_to_buy)
+        else:
+            if len(self.inventory) >= 8:
+                raise ValueError("Inventory full (8).")
+            chip = TurboChip(**item)
+            self.inventory.append(chip)
 
-        # ------------------------------------------------------------------
-        #  Deck-builder rule: **duplicates are allowed**.                  
-        #  Always add the purchased card to the current draw pile so the  
-        #  player can potentially pick it up immediately.                  
-        # ------------------------------------------------------------------
-        self.deck.cards.append(card_to_buy)
-        random.shuffle(self.deck.cards)   # Light shuffle keeps randomness
-        
-        # Queue the bought card to be shuffled into the deck for the NEXT round
-        # (do **not** add it to the hand directly – it should behave like a
-        #   deck-builder where bought cards are drawn later).
-        self.purchased_cards.append(card_to_buy)
-
-        # Remove card from shop
-        self.shop_cards.pop(card_index)
+        # Remove item from shop
+        self.shop_items.pop(card_index)
         
         logger.info(
-            "Session %s: Bought card %s for $%d. Money remaining: $%d. Deck now has %d cards.",
+            "Session %s: Bought item %s for $%d. Money remaining: $%d. Deck now has %d cards.",
             self.session_id,
-            str(card_to_buy),
-            self.shop_card_cost,
+            str(item),
+            cost,
             self.money,
             self.deck.remaining_count(),
         )
@@ -449,7 +484,7 @@ class GameSession:
         self.draws_used = 0
         self.in_shop = False
 
-        self.shop_cards.clear() # Clear shop offerings for the new round
+        self.shop_items.clear() # Clear shop offerings for the new round
 
         # 1. Create a new, full standard 52-card deck.
         new_round_draw_pile_cards: List[Card] = []

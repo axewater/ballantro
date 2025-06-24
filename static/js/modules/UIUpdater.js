@@ -41,6 +41,8 @@ class UIUpdater {
         
         // Update selection count
         this.elements.selectionCount.textContent = selectedCount;
+        // inventory
+        this.updateInventory(gameState.inventory || []);
     }
 
     updateButtonStates(gameState, selectedCount) {
@@ -198,6 +200,23 @@ class UIUpdater {
         } else {
             this.elements.sortRankBtn.classList.remove('active-sort');
             this.elements.sortSuitBtn.classList.remove('active-sort');
+        }
+    }
+
+    updateInventory(inv){
+        const cont=document.getElementById('inventory-slots');
+        if(!cont) return;
+        cont.innerHTML='';
+        inv.forEach(chip=>{
+            const d=document.createElement('div');
+            d.className='turbo-chip';
+            d.textContent=chip.name;
+            cont.appendChild(d);
+        });
+        for(let i=inv.length;i<8;i++){
+            const empty=document.createElement('div');
+            empty.className='turbo-chip';empty.style.opacity='0.15';
+            cont.appendChild(empty);
         }
     }
 }
