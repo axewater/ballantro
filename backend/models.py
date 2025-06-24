@@ -88,6 +88,9 @@ class HandResult(BaseModel):
     total_score: int
     description: str
     applied_bonuses: List[str] = [] # List of strings describing card-specific bonuses
+    # Indices (0-based, order preserved) of cards that actually contributed
+    # chip / multiplier bonuses for this hand.
+    triggered_indices: List[int] = []
 
 class GameState(BaseModel):
     session_id: str

@@ -34,20 +34,27 @@ class PokerEvaluator:
         if len(cards) != 5:
             raise ValueError("Hand must contain exactly 5 cards")
         
-        # ------------------------------------------------------------------ #
-        # 1)  Calculate **card chips** & accumulated bonuses                #
-        #    Also, collect descriptions of applied bonuses.                 #
-        # ------------------------------------------------------------------ #
-        base_card_chips = sum(card._base_chip_value() for card in cards)
-        bonus_chips = sum(card.bonus_chips() for card in cards)
-        card_chips = base_card_chips + bonus_chips
-        
-        # Determine hand type
+        # Pre-compute rank occurrences for helper use
+        rank_counts = Counter([card.rank for card in cards])
+
+        # Determine hand type first
         hand_type = cls._get_hand_type(cards)
-        
+
+        # Figure out which concrete cards actually contribute to the
+        # scored combination (see _get_triggered_indices docstring).
+        triggered_indices = cls._get_triggered_indices(cards, hand_type, rank_counts)
+        triggered_cards   = [cards[i] for i in triggered_indices]
+
+        # ------------------------------------------------------------------ #
+        # 1)  Calculate **card chips** & accumulated bonuses (triggered)     #
+        # ------------------------------------------------------------------ #
+        base_card_chips = sum(c._base_chip_value() for c in triggered_cards)
+        bonus_chips     = sum(c.bonus_chips()       for c in triggered_cards)
+        card_chips      = base_card_chips + bonus_chips
+
         # Collect applied bonus descriptions
         applied_bonuses_descriptions: List[str] = []
-        for card in cards:
+        for card in triggered_cards:
             card_name_str = f"{card.rank.value} of {card.suit.value.capitalize()}" # e.g. "Ace of Spades"
             if card.bonus_chips() > 0:
                 applied_bonuses_descriptions.append(
@@ -63,7 +70,7 @@ class PokerEvaluator:
         base_chips = score_info["base_chips"]
         base_multiplier = score_info["multiplier"]
         
-        bonus_multiplier = sum(card.bonus_multiplier() for card in cards)
+        bonus_multiplier = sum(card.bonus_multiplier() for card in triggered_cards)
         
         multiplier = base_multiplier + bonus_multiplier
         
@@ -80,7 +87,8 @@ class PokerEvaluator:
             card_chips=card_chips,
             total_score=total_score,
             description=description,
-            applied_bonuses=applied_bonuses_descriptions
+            applied_bonuses=applied_bonuses_descriptions,
+            triggered_indices=triggered_indices,
         )
     
     @classmethod
@@ -206,6 +214,62 @@ class PokerEvaluator:
         
         # Regular straight - return highest rank
         return max(ranks, key=lambda r: cls.RANK_VALUES[r])
+
+    # ------------------------------------------------------------------ #
+    #  Helper – which cards actually score?                              #
+    # ------------------------------------------------------------------ #
+    @classmethod
+    def _get_triggered_indices(cls, cards: List[Card], hand_type: HandType, rank_counts: Counter) -> List[int]:
+        """
+        Determine indices of cards that contribute chip / multiplier
+        bonuses for the given `hand_type` according to spec:
+            high card → 1 (highest)
+            pair      → 2
+            two pair  → 4
+            trips     → 3
+            quads     → 4
+        All 5 cards are counted for any other hand (straight, flush, etc.).
+        Order of indices follows the original `cards` list.
+        """
+        from collections import defaultdict
+        rank_to_indices = defaultdict(list)
+        for idx, c in enumerate(cards):
+            rank_to_indices[c.rank].append(idx)
+
+        # ---  HIGH CARD ---------------------------------------------------- #
+        #   Only the single highest card contributes.
+        if hand_type == HandType.HIGH_CARD:
+            highest_idx = max(range(len(cards)),
+                              key=lambda i: cls.RANK_VALUES[cards[i].rank])
+            return [highest_idx]
+
+        # ---  ONE PAIR  ---------------------------------------------------- #
+        #   Exactly the two cards that form the pair.
+        if hand_type == HandType.ONE_PAIR:
+            pair_rank = next(r for r, cnt in rank_counts.items() if cnt == 2)
+            return list(rank_to_indices[pair_rank])  # two indices
+
+        # ---  TWO PAIR  ---------------------------------------------------- #
+        #   Both pairs → 4 cards.
+        if hand_type == HandType.TWO_PAIR:
+            pair_ranks = [r for r, cnt in rank_counts.items() if cnt == 2]
+            triggered = []
+            for r in pair_ranks:
+                triggered.extend(rank_to_indices[r])
+            # Preserve the **original order** of the hand
+            return sorted(triggered)
+
+        # ---  THREE / FOUR OF A KIND  ------------------------------------- #
+        if hand_type == HandType.THREE_OF_A_KIND:
+            trip_rank = next(r for r, cnt in rank_counts.items() if cnt == 3)
+            return list(rank_to_indices[trip_rank])  # 3 indices
+
+        if hand_type == HandType.FOUR_OF_A_KIND:
+            quad_rank = next(r for r, cnt in rank_counts.items() if cnt == 4)
+            return list(rank_to_indices[quad_rank])  # 4 indices
+
+        # Straight / Flush / Full-House / Straight-Flush → all cards
+        return list(range(len(cards)))
 
     @classmethod
     def evaluate_preview_hand(cls, cards: List[Card]) -> Optional[Dict[str, Any]]:

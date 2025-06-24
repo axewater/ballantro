@@ -20,10 +20,13 @@ class ScoringAnimationManager{
         /* misc */
         this.animationDelayPerCard = 700; // ms
         this.isAnimating = false;
+        this.triggeredSet = new Set(); // indices of cards that actually score
     }
 
     /*  entry-point called by game.js  */
     async startScoringAnimation(playedCardsData, playedCardElements, handResult, onComplete){
+        // Store which card indices actually contribute to scoring
+        this.triggeredSet = new Set(handResult.triggered_indices || []);
         if(this.isAnimating) return;
         this.isAnimating = true;
 
@@ -160,6 +163,7 @@ class ScoringAnimationManager{
         for(let i=0;i<cards.length;i++){
             const card = cards[i];
             const cardEl = this.cardRow.children[i];
+            const isTriggered = this.triggeredSet.has(i);
 
             /* shake */
             // Ensure cardEl exists before trying to manipulate it
@@ -176,26 +180,26 @@ class ScoringAnimationManager{
             await this._delay(80);
             cardEl.style.transform='scale(1)';
 
-            /* ▶ CHIP VALUE FLOAT */
-            const base = this._getBaseChipValueForCard(card);
-            await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
-            this._runningChips += base;
-            this.liveChipTotalEl.textContent = this._runningChips;
-
-            /* ▶ SPECIAL EFFECTS */
-            const bonusChips = this._getCardBonusChips(card);
-            if(bonusChips){
-                // Ensure cardEl is valid before spawning number
-                if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusChips}`, 'blue', this.liveChipTotalEl);
-                this._runningChips += bonusChips;
+            if(isTriggered){
+                /* ▶ CHIP VALUE FLOAT */
+                const base = this._getBaseChipValueForCard(card);
+                await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
+                this._runningChips += base;
                 this.liveChipTotalEl.textContent = this._runningChips;
-            }
-            const bonusMult = this._getCardBonusMultiplier(card);
-            if(bonusMult){
-                // Ensure cardEl is valid before spawning number
-                if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusMult}`, 'red',  this.liveMultTotalEl);
-                this._runningMult += bonusMult;
-                this.liveMultTotalEl.textContent = this._runningMult;
+
+                /* ▶ SPECIAL EFFECTS */
+                const bonusChips = this._getCardBonusChips(card);
+                if(bonusChips){
+                    if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusChips}`, 'blue', this.liveChipTotalEl);
+                    this._runningChips += bonusChips;
+                    this.liveChipTotalEl.textContent = this._runningChips;
+                }
+                const bonusMult = this._getCardBonusMultiplier(card);
+                if(bonusMult){
+                    if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusMult}`, 'red',  this.liveMultTotalEl);
+                    this._runningMult += bonusMult;
+                    this.liveMultTotalEl.textContent = this._runningMult;
+                }
             }
             await this._delay(this.animationDelayPerCard - 300);
         }
@@ -239,6 +243,7 @@ class ScoringAnimationManager{
         this.liveChipTotalEl.textContent='0';
         this.liveMultTotalEl.textContent='1';
         this.liveFinalTotalEl.textContent='0';
+        this.triggeredSet.clear();
     }
 
     _getBaseChipValueForCard(card) {
