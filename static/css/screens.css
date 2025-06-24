@@ -391,22 +391,22 @@
     height: 168px;
     background: white;
     border-radius: 12px;
-    border: 3px solid #ddd;
+    border: 2px solid #ddd; /* Match regular card border thickness */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 6px;
+    padding: 8px 6px; /* Adjust padding similar to .card */
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
     user-select: none;
 }
 /* Apply suit colors to shop cards as well */
-.shop-card.hearts .card-rank, .shop-card.hearts .card-suit, .shop-card.hearts .card-rank-bottom { color: #e74c3c; }
-.shop-card.diamonds .card-rank, .shop-card.diamonds .card-suit, .shop-card.diamonds .card-rank-bottom { color: #3498db; }
-.shop-card.clubs .card-rank, .shop-card.clubs .card-suit, .shop-card.clubs .card-rank-bottom { color: #2ecc71; }
-.shop-card.spades .card-rank, .shop-card.spades .card-suit, .shop-card.spades .card-rank-bottom { color: #000000; }
+.shop-card.hearts .card-rank, .shop-card.hearts .card-suit { color: #e74c3c; }
+.shop-card.diamonds .card-rank, .shop-card.diamonds .card-suit { color: #3498db; }
+.shop-card.clubs .card-rank, .shop-card.clubs .card-suit { color: #2ecc71; }
+.shop-card.spades .card-rank, .shop-card.spades .card-suit { color: #000000; }
 
 .shop-card.turbo {
     width: 100px; /* Square dimension */
@@ -438,13 +438,6 @@
 .shop-card .card-suit {
     font-size: 2.2rem;
     line-height: 1;
-}
-
-.shop-card .card-rank-bottom {
-    font-size: 1.8rem;
-    font-weight: bold;
-    line-height: 1;
-    transform: rotate(180deg);
 }
 
 .shop-card .card-price {

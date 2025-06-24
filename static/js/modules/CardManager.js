@@ -47,38 +47,44 @@ class CardManager {
         rankElement.className = 'card-rank';
         rankElement.textContent = card.rank;
         
+        const iconArea = document.createElement('div');
+        iconArea.className = 'card-icon-area';
+
+        if (hasEffects) {
+            card.effects.forEach(effectId => {
+                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
+                if (effectInfo) {
+                    let iconElement = null;
+                    if (effectId.startsWith('bonus_chips')) {
+                        iconElement = document.createElement('div');
+                        iconElement.className = 'card-bonus-chips-icon';
+                        iconElement.textContent = '✚'; // Heavy Greek Cross
+                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                    } else if (effectId.startsWith('bonus_multiplier')) {
+                        iconElement = document.createElement('div');
+                        iconElement.className = 'card-bonus-multiplier-icon';
+                        iconElement.textContent = '★'; // Black Star
+                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                    }
+
+                    if (iconElement) {
+                        iconElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(iconElement.dataset.tooltipText, event));
+                        iconElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+                        iconElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+                        iconArea.appendChild(iconElement);
+                    }
+                }
+            });
+        }
+
         const suitElement = document.createElement('div');
         suitElement.className = 'card-suit';
         suitElement.textContent = this.getSuitSymbol(card.suit);
         
         cardElement.appendChild(rankElement);
+        cardElement.appendChild(iconArea);
         cardElement.appendChild(suitElement);
 
-        // Special-card overlay & Tooltip
-        if (hasEffects) {
-            const effectIcon = document.createElement('div');
-            effectIcon.className = 'card-effect-icon';
-            effectIcon.textContent = '✦';
-            cardElement.appendChild(effectIcon);
-
-            // Prepare tooltip content
-            let tooltipHTML = '';
-            card.effects.forEach((effectId, index) => {
-                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
-                if (effectInfo) {
-                    if (index > 0) tooltipHTML += '<br><br>'; // Separator for multiple effects
-                    tooltipHTML += `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
-                }
-            });
-
-            if (tooltipHTML) {
-                cardElement.dataset.tooltipText = tooltipHTML;
-                cardElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(tooltipHTML, event));
-                cardElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
-                cardElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
-            }
-        }
-        
         return cardElement;
     }
 

@@ -431,50 +431,55 @@ class PokerGame {
         const cardElement = document.createElement('div');
         cardElement.className = `shop-card ${card.suit.toLowerCase()}`;
         
+        // Rank (Top)
         const rankElement = document.createElement('div');
-        rankElement.className = 'card-rank';
+        rankElement.className = 'card-rank'; // Uses .shop-card .card-rank for sizing
         rankElement.textContent = card.rank;
         
+        // Icon Area (Middle)
+        const iconArea = document.createElement('div');
+        iconArea.className = 'card-icon-area'; // Uses .card-icon-area styles
+
+        if (card.effects && card.effects.length > 0) {
+            card.effects.forEach(effectId => {
+                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
+                if (effectInfo) {
+                    let iconElement = null;
+                    if (effectId.startsWith('bonus_chips')) {
+                        iconElement = document.createElement('div');
+                        // Apply general card icon styles, shop-card context might override size if needed via specific CSS
+                        iconElement.className = 'card-bonus-chips-icon'; 
+                        iconElement.textContent = '✚';
+                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                    } else if (effectId.startsWith('bonus_multiplier')) {
+                        iconElement = document.createElement('div');
+                        iconElement.className = 'card-bonus-multiplier-icon';
+                        iconElement.textContent = '★';
+                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                    }
+
+                    if (iconElement) {
+                        iconElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(iconElement.dataset.tooltipText, event));
+                        iconElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+                        iconElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+                        iconArea.appendChild(iconElement);
+                    }
+                }
+            });
+        }
+
+        // Suit (Bottom)
         const suitElement = document.createElement('div');
-        suitElement.className = 'card-suit';
+        suitElement.className = 'card-suit'; // Uses .shop-card .card-suit for sizing
         suitElement.textContent = this.cardManager.getSuitSymbol(card.suit);
-        
-        const rankBottomElement = document.createElement('div');
-        rankBottomElement.className = 'card-rank-bottom';
-        rankBottomElement.textContent = card.rank;
-        
+                
         const priceElement = document.createElement('div');
         priceElement.className = 'card-price';
         priceElement.textContent = '$3';
         
-        // Special-card overlay & Tooltip
-        if (card.effects && card.effects.length > 0) {
-            const effectIcon = document.createElement('div');
-            effectIcon.className = 'card-effect-icon';
-            effectIcon.textContent = '✦';
-            cardElement.appendChild(effectIcon);
-
-            // Prepare tooltip content
-            let tooltipHTML = '';
-            card.effects.forEach((effectId, idx) => {
-                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
-                if (effectInfo) {
-                    if (idx > 0) tooltipHTML += '<br><br>'; // Separator for multiple effects
-                    tooltipHTML += `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
-                }
-            });
-
-            if (tooltipHTML) {
-                cardElement.dataset.tooltipText = tooltipHTML;
-                cardElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(cardElement.dataset.tooltipText, event));
-                cardElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
-                cardElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
-            }
-        }
-
         cardElement.appendChild(rankElement);
+        cardElement.appendChild(iconArea);
         cardElement.appendChild(suitElement);
-        cardElement.appendChild(rankBottomElement);
         cardElement.appendChild(priceElement);
         
         // Add click event to buy card

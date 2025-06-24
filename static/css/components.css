@@ -104,15 +104,15 @@
 /* Cards */
 .card {
     width: 80px;
-    height: 112px;
+    height: 120px; /* Increased height for new layout */
     background: white;
     border-radius: 8px;
     border: 2px solid #ddd;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 4px;
+    justify-content: space-between; /* Rank top, Suit bottom, Icon area middle */
+    padding: 5px 4px; /* Adjusted padding */
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -139,52 +139,62 @@
     font-size: 1.2rem;
     font-weight: bold;
     line-height: 1;
+    /* text-align: left; */ /* Align to top-left if desired, but center is default for flex item */
+    /* width: 100%; */
+    /* padding-left: 4px; */
+}
+
+.card-icon-area {
+    display: flex;
+    flex-direction: column; /* Stack icons if multiple */
+    align-items: center;
+    justify-content: center;
+    gap: 4px; /* Space between icons if multiple */
+    flex-grow: 1; /* Allow this area to take up available space */
+    width: 100%;
+}
+
+.card-bonus-chips-icon,
+.card-bonus-multiplier-icon {
+    font-size: 1.8rem; /* Approx double the old icon size */
+    line-height: 1;
+    font-weight: bold; /* Make icons a bit bolder */
+}
+
+.card-bonus-chips-icon {
+    color: #34adee; /* Vibrant blue */
+    text-shadow: 0 0 4px rgba(52, 173, 238, 0.6), 0 0 6px rgba(52, 173, 238, 0.3);
+}
+
+.card-bonus-multiplier-icon {
+    color: #e74c3c; /* Vibrant red */
+    text-shadow: 0 0 4px rgba(231, 76, 60, 0.6), 0 0 6px rgba(231, 76, 60, 0.3);
 }
 
 .card-suit {
     font-size: 1.5rem;
     line-height: 1;
-}
-
-.card-rank-bottom {
-    font-size: 1.2rem;
-    font-weight: bold;
-    line-height: 1;
-    transform: rotate(180deg);
+    /* text-align: left; */ /* Align to bottom-left if desired */
+    /* width: 100%; */
+    /* padding-left: 4px; */
 }
 
 /* Suit colors - Using the final definitions from "4-colour deck" section */
 .card.hearts .card-rank,
-.card.hearts .card-rank-bottom,
 .card.hearts .card-suit {
     color: #e74c3c; 
 }
 .card.diamonds .card-rank,
-.card.diamonds .card-rank-bottom,
 .card.diamonds .card-suit {
     color: #3498db; 
 }
 .card.clubs .card-rank,
-.card.clubs .card-rank-bottom,
 .card.clubs .card-suit {
     color: #2ecc71; 
 }
 .card.spades .card-rank,
-.card.spades .card-rank-bottom,
 .card.spades .card-suit {
     color: #000000; 
-}
-
-/* Special card overlay */
-.card-effect-icon {
-    position: absolute;
-    top: 3px;
-    right: 4px;
-    font-size: 0.85rem;
-    color: #fffa65;
-    pointer-events: none;
-    text-shadow: 0 0 6px rgba(255,255,255,0.9);
-    filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
 }
 
 /* Modal */
