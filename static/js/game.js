@@ -26,9 +26,21 @@ class PokerGame {
         // ───── NEW: card-click & multiplier sounds ─────
         this.cardClickSound  = new Audio('/static/assets/sound/card_click.mp3');
         this.scoreMultSound  = new Audio('/static/assets/sound/score_mult.mp3');
+
+        /* ───── NEW: card-hover “flick” sound ───── */
+        this.cardHoverSound  = new Audio('/static/assets/sound/cards_flick.mp3');
+        /*  Global helpers so *any* module / element can trigger the hover sound.
+            The helper stops the current playback (if any) and restarts it,
+            so rapidly moving over many cards will retrigger the SFX cleanly. */
+        window.cardHoverSound      = this.cardHoverSound;
+        window.playCardHoverSound  = () => { const s = window.cardHoverSound; if(s){ s.pause(); s.currentTime = 0; s.play().catch(()=>{});} };
+        /* universal UI button click */
+        this.buttonClickSound = new Audio('/static/assets/sound/button_click.mp3');
         /* expose globally so other modules can play them without tight coupling */
         window.cardClickSound  = this.cardClickSound;
         window.scoreMultSound  = this.scoreMultSound;
+        /* expose button click for modules if needed */
+        window.buttonClickSound = this.buttonClickSound;
 
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();
@@ -111,6 +123,7 @@ class PokerGame {
     }
 
     async drawCards() {
+        this._playButtonSound();
         if (this.cardManager.isSorting) return;
         if (this.cardManager.getSelectedCount() === 0) {
             alert('Please select at least one card to discard.');
@@ -157,6 +170,7 @@ class PokerGame {
     }
 
     async playHand() {
+        this._playButtonSound();
         if (this.cardManager.isSorting) return;
         if (this.cardManager.getSelectedCount() !== 5) {
             alert('Please select exactly 5 cards to play.');
@@ -378,6 +392,7 @@ class PokerGame {
     }
 
     async sortCardsByRank() {
+        this._playButtonSound();
         logClientHand("Hand BEFORE sort by rank request:", this.gameState.getHand());
         // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsByRank(this.gameState.gameState, () => {
@@ -390,6 +405,7 @@ class PokerGame {
     }
 
     async sortCardsBySuit() {
+        this._playButtonSound();
         logClientHand("Hand BEFORE sort by suit request:", this.gameState.getHand());
         // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsBySuit(this.gameState.gameState, () => {
@@ -514,6 +530,11 @@ class PokerGame {
         cardElement.appendChild(suitElement);
         cardElement.appendChild(priceElement);
 
+        /* Hover sound */
+        cardElement.addEventListener('mouseenter', () => {
+            if (window.playCardHoverSound) window.playCardHoverSound();
+        });
+
         /* -------------------------------------------------------------
          * Click handler looks up the *live* dataset.index instead of
          * using the original `index` captured in the closure.  This
@@ -558,6 +579,10 @@ class PokerGame {
         el.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(el.dataset.tooltipText, event));
         el.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
         el.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+        /* Hover sound */
+        el.addEventListener('mouseenter', () => {
+            if (window.playCardHoverSound) window.playCardHoverSound();
+        });
 
         return el;
     }
@@ -692,6 +717,16 @@ class PokerGame {
             '5': '5', '4': '4', '3': '3', '2': '2'
         };
         return rankMap[rank] || rank;
+    }
+
+    /* ------------------------------------------------------------- */
+    /*  Helper – universal button-click sound for main action buttons */
+    /* ------------------------------------------------------------- */
+    _playButtonSound() {
+        if (this.buttonClickSound) {
+            this.buttonClickSound.currentTime = 0;
+            this.buttonClickSound.play().catch(() => {});
+        }
     }
 }
 

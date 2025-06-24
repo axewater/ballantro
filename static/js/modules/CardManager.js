@@ -85,6 +85,10 @@ class CardManager {
         cardElement.appendChild(iconArea);
         cardElement.appendChild(suitElement);
 
+        /* ── Hover sound ── */
+        cardElement.addEventListener('mouseenter', () => {
+            if (window.playCardHoverSound) window.playCardHoverSound();
+        });
         return cardElement;
     }
 
