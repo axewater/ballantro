@@ -29,14 +29,13 @@
         <!-- Game Screen -->
         <div id="game-screen" class="screen">
             <!-- Live Score Preview Panel -->
-            <div id="live-score-preview" class="glass-panel live-preview-panel">
-                <h4 id="preview-title" class="preview-title">Hand Preview</h4>
+            <div id="live-score-preview" class="glass-panel live-preview-panel"> 
+                <h4 id="preview-title" class="preview-title">
+                    <span class="info-label">Round</span>
+                    <span id="current-round" class="info-value">1</span>
+                </h4>
                 <!-- Game Info Items Moved Here -->
                 <div class="game-info-preview">
-                    <div class="info-item">
-                        <span class="info-label">Round</span>
-                        <span id="current-round" class="info-value">1</span>
-                    </div>
                     <div class="info-item">
                         <span class="info-label">Score</span>
                         <span id="total-score" class="info-value">0</span>
@@ -49,13 +48,15 @@
                         <span class="info-label">Target</span>
                         <span id="round-target" class="info-value">300</span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">Hands</span>
-                        <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Draws</span>
-                        <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
+                    <div class="info-group-hands-draws">
+                        <div class="info-item">
+                            <span class="info-label">Hands</span>
+                            <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Draws</span>
+                            <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
+                        </div>
                     </div>
                 </div>
                 

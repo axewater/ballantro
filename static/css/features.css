@@ -30,6 +30,14 @@
     justify-content: center; /* Center items if wrapping occurs */
 }
 
+.info-group-hands-draws {
+    display: flex;
+    flex-wrap: nowrap; /* Ensure Hands and Draws stay on one line */
+    gap: 20px; /* Space between Hands and Draws */
+    /* You might want to adjust alignment if needed, e.g., align-items: center; */
+    /* Or justify-content: center; if this group needs to be centered within its parent */
+}
+
 .preview-title {
     font-size: 1.3rem;
     font-weight: 600;
