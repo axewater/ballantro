@@ -18,14 +18,16 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Styles for the moved game info items inside the preview panel */
+/* Styles for the moved game info items inside the preview panel - now horizontal */
 .game-info-preview {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Arrange info items in 2 columns */
-    gap: 10px; /* Gap between items */
+    display: flex;
+    flex-direction: row;
+    gap: 20px; /* Increased gap for clarity */
     margin-bottom: 15px; /* Space before preview mode content */
     border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Separator line */
     padding-bottom: 10px; /* Padding for the separator */
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    justify-content: center; /* Center items if wrapping occurs */
 }
 
 .preview-title {
