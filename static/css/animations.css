@@ -86,3 +86,20 @@
     from { transform: translateZ(0) rotate(0deg) scale(1); }
     to   { transform: translateZ(0) rotate(360deg) scale(1.5); }
 }
+
+/* simple shake + float-number animations */
+@keyframes cardShake{
+    0%,100%{transform:translateX(0) rotate(0) scale(1);}
+    25%{transform:translateX(-4px) rotate(-3deg) scale(1.1);}
+    75%{transform:translateX(4px) rotate(3deg) scale(1.1);}
+}
+
+/* ─────  NEW: final score pizzazz  ───── */
+@keyframes finalScorePop{
+    0%  {transform:scale(1);   color:#00e5ff;}
+    50% {transform:scale(1.4); color:#f1c40f;}
+    100%{transform:scale(1);   color:#00e5ff;}
+}
+.final-total-pop{
+    animation:finalScorePop .8s ease-out;
+}

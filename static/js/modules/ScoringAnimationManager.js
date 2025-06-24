@@ -103,8 +103,13 @@ class ScoringAnimationManager{
                 continue; // Skip to the next card if element is missing
             }
             cardEl.classList.add('card-shaking');
+            /* slight zoom-out after shake finishes */
             await this._delay(150);
             cardEl.classList.remove('card-shaking');
+            cardEl.style.transition='transform .15s';
+            cardEl.style.transform='scale(0.97)';
+            await this._delay(80);
+            cardEl.style.transform='scale(1)';
 
             /* ▶ CHIP VALUE FLOAT */
             const base = this._getBaseChipValueForCard(card);
@@ -158,6 +163,10 @@ class ScoringAnimationManager{
         };
         requestAnimationFrame(step);
         await this._delay(duration+50);
+
+        /* ✨ pop effect on final total */
+        this.liveFinalTotalEl.classList.add('final-total-pop');
+        setTimeout(()=>this.liveFinalTotalEl.classList.remove('final-total-pop'), 800);
     }
 
     _resetScoringArea(){
