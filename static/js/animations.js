@@ -58,33 +58,17 @@ class GameAnimations {
 
     // Card selection animation with enhanced effects
     animateCardSelection(card, isSelected) {
-        if (isSelected) {
-            // Selection animation
-            card.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-            card.style.transform = 'translateY(-20px) scale(1.1) rotateZ(2deg)';
-            card.style.boxShadow = `
-                0 15px 35px rgba(102, 126, 234, 0.6),
-                0 0 0 4px rgba(102, 126, 234, 0.4),
-                inset 0 2px 0 rgba(255, 255, 255, 0.3)
-            `;
-            card.style.filter = 'brightness(1.1) saturate(1.2)';
-            
-            // Add glow effect
-            this.addGlowEffect(card);
-            
-            // Shake animation
-            setTimeout(() => {
-                this.shakeCard(card);
-            }, 200);
-        } else {
-            // Deselection animation
-            card.style.transition = 'all 0.3s ease-out';
-            card.style.transform = 'translateY(0) scale(1) rotateZ(0deg)';
-            card.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)';
-            card.style.filter = 'brightness(1) saturate(1)';
-            
-            this.removeGlowEffect(card);
-        }
+        // The CardManager has already added/removed the '.selected' class.
+        // This function ensures that inline styles don't override CSS class rules,
+        // particularly for 'transform', 'boxShadow', and 'filter'.
+
+        // Clear potentially conflicting inline styles so CSS classes take precedence.
+        // Transitions will be handled by CSS (e.g., .card { transition: all 0.3s ease; })
+        card.style.transform = ''; 
+        card.style.boxShadow = '';
+        card.style.filter = '';
+        // card.style.transition = ''; // Explicitly let CSS manage transitions.        
+        
     }
 
     // Enhanced card scoring animation
@@ -218,32 +202,13 @@ class GameAnimations {
 
     // Add glow effect to card
     addGlowEffect(card) {
-        const glow = document.createElement('div');
-        glow.className = 'card-glow';
-        glow.style.cssText = `
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #f5576c);
-            border-radius: 15px;
-            z-index: -1;
-            opacity: 0.7;
-            filter: blur(8px);
-            animation: glowPulse 2s ease-in-out infinite;
-        `;
-        
-        card.style.position = 'relative';
-        card.appendChild(glow);
+        // This function is now a no-op. The custom multi-color glow is removed.
+        // The golden glow is handled by the .card.selected CSS class.
     }
 
     // Remove glow effect
     removeGlowEffect(card) {
-        const glow = card.querySelector('.card-glow');
-        if (glow) {
-            glow.remove();
-        }
+        // This function is now a no-op.
     }
 
     // Add sparkle effect

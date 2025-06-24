@@ -262,7 +262,7 @@ class CardManager {
             
             if (this.selectedCards.has(newIndex)) {
                 cardElement.classList.add('selected');
-                cardElement.style.transform = 'translateY(-30px) scale(1.1)';
+                cardElement.style.transform = 'translateY(-30px)';
             } else {
                 cardElement.classList.remove('selected');
                 cardElement.style.transform = 'translateY(-30px)';
@@ -278,7 +278,7 @@ class CardManager {
             if (this.selectedCards.has(newIndex)) {
                 window.gameAnimations.animateCardSelection(cardElement, true);
             } else {
-                cardElement.style.transform = 'translateY(0) scale(1)';
+                cardElement.style.transform = 'translateY(0)';
             }
             cardElement.style.zIndex = this.selectedCards.has(newIndex) ? '10' : '1';
         });

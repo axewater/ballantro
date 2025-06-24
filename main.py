@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import uvicorn
 import os, random # random for debug deck
 import logging
@@ -34,6 +34,11 @@ templates = Jinja2Templates(directory="templates")
 
 # Game engine instance
 game_engine = GameEngine()
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Serve the favicon.ico file"""
+    return FileResponse("static/favicon.ico")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
