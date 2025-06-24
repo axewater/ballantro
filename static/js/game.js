@@ -41,9 +41,6 @@ class PokerGame {
         document.getElementById('reroll-shop-btn').addEventListener('click', () => this.rerollShop());
         document.getElementById('next-round-btn').addEventListener('click', () => this.proceedToNextRound());
 
-        // Scoring screen
-        document.getElementById('continue-btn').addEventListener('click', () => this.continueGame());
-
         // Victory screen
         document.getElementById('save-score-btn').addEventListener('click', () => this.screenManager.showNameModal());
         document.getElementById('play-again-btn').addEventListener('click', () => this.startNewGame());

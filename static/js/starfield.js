@@ -5,7 +5,7 @@
     const ctx = canvas.getContext("2d");
     let w, h, cx, cy, stars = [];
     const STAR_COUNT = 750;
-    const SPEED = 0.01; // tweak for effect
+    const SPEED = 0.0025; // tweak for effect
     const Z_MAX = 8;
 
     const resize = () => {

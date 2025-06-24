@@ -73,60 +73,6 @@ class UIUpdater {
         });
     }
 
-    showScoringScreen(handResult, playedCards, moneyAwardedThisRound, cardManager) {
-
-        // Display played cards
-        const playedCardsContainer = document.getElementById('played-cards');
-        playedCardsContainer.innerHTML = '';
-        
-        // render exactly the Card objects passed in
-        playedCards.forEach(card => {
-            const el = cardManager.createCardElement(card, false);
-            playedCardsContainer.appendChild(el);
-        });
-
-        // Display hand result
-        document.getElementById('hand-type-name').textContent = this._formatHandType(handResult.hand_type);
-        document.getElementById('hand-description').textContent = handResult.description;
-        document.getElementById('card-chips').textContent = '0';
-        document.getElementById('base-chips').textContent = '0';
-        document.getElementById('multiplier').textContent = '×1';
-        document.getElementById('hand-score').textContent = '0';
-        
-        // Money awarded display
-        const roundBonusItem = document.getElementById('round-bonus-item');
-        const roundBonusMoney = document.getElementById('round-bonus-money');
-        if (moneyAwardedThisRound > 0) {
-            roundBonusMoney.textContent = `$${moneyAwardedThisRound}`;
-            roundBonusItem.style.display = 'flex';
-        } else {
-            roundBonusItem.style.display = 'none';
-        }
-
-        // Display card-specific bonuses
-        const bonusDetailsContainer = document.getElementById('bonus-details-container');
-        bonusDetailsContainer.innerHTML = ''; // Clear previous bonuses
-
-        if (handResult.applied_bonuses && handResult.applied_bonuses.length > 0) {
-            handResult.applied_bonuses.forEach(bonusText => {
-                const bonusItem = document.createElement('div');
-                bonusItem.className = 'score-item card-bonus-item'; // Add a specific class for styling if needed
-
-                const bonusLabel = document.createElement('span');
-                bonusLabel.className = 'score-label';
-                bonusLabel.textContent = 'Card Bonus:';
-
-                const bonusValue = document.createElement('span');
-                bonusValue.className = 'score-value';
-                bonusValue.textContent = bonusText;
-
-                bonusItem.appendChild(bonusLabel);
-                bonusItem.appendChild(bonusValue);
-                bonusDetailsContainer.appendChild(bonusItem);
-            });
-        }
-    }
-
     showVictoryScreen(finalScore, isDebugging = false) {
         document.getElementById('final-score').textContent = finalScore;
         const saveScoreBtn = document.getElementById('save-score-btn');
