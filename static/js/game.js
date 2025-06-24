@@ -412,7 +412,7 @@ class PokerGame {
 
     createShopCardElement(card, index) {
         const cardElement = document.createElement('div');
-        cardElement.className = `shop-card ${card.suit}`;
+        cardElement.className = `shop-card ${card.suit.toLowerCase()}`;
         
         const rankElement = document.createElement('div');
         rankElement.className = 'card-rank';
@@ -430,12 +430,29 @@ class PokerGame {
         priceElement.className = 'card-price';
         priceElement.textContent = '$3';
         
-        // Special-card overlay
+        // Special-card overlay & Tooltip
         if (card.effects && card.effects.length > 0) {
             const effectIcon = document.createElement('div');
             effectIcon.className = 'card-effect-icon';
             effectIcon.textContent = '✦';
             cardElement.appendChild(effectIcon);
+
+            // Prepare tooltip content
+            let tooltipHTML = '';
+            card.effects.forEach((effectId, idx) => {
+                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
+                if (effectInfo) {
+                    if (idx > 0) tooltipHTML += '<br><br>'; // Separator for multiple effects
+                    tooltipHTML += `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                }
+            });
+
+            if (tooltipHTML) {
+                cardElement.dataset.tooltipText = tooltipHTML;
+                cardElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(cardElement.dataset.tooltipText, event));
+                cardElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+                cardElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+            }
         }
 
         cardElement.appendChild(rankElement);
@@ -451,12 +468,24 @@ class PokerGame {
 
     createTurboChipElement(chip,index){
         const el=document.createElement('div');
-        el.className='shop-card turbo';
-        el.innerHTML=`<div class="card-rank">⚡</div><div class="card-suit">${chip.name}</div>`;
+        el.className='shop-card turbo'; // .card-suit is hidden by CSS
+        // Only the icon (rank) will be visible
+        el.innerHTML=`<div class="card-rank">⚡</div>`; 
+        
+        // Store tooltip text in a data attribute
+        el.dataset.tooltipText = `<strong>${chip.name}</strong><br>${chip.description}`;
+
         const price=document.createElement('div');
         price.className='card-price';price.textContent='$1';
         el.appendChild(price);
+        
         el.addEventListener('click',()=>this.buyCard(index));
+
+        // Add event listeners for tooltip
+        el.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(el.dataset.tooltipText, event));
+        el.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+        el.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+
         return el;
     }
 

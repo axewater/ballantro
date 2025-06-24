@@ -209,13 +209,24 @@ class UIUpdater {
         cont.innerHTML='';
         inv.forEach(chip=>{
             const d=document.createElement('div');
-            d.className='turbo-chip';
-            d.textContent=chip.name;
+            d.className='turbo-chip'; // Will be styled as a square icon holder
+            d.innerHTML = '⚡'; // Display lightning icon
+            
+            // Store tooltip text in a data attribute
+            d.dataset.tooltipText = `<strong>${chip.name}</strong><br>${chip.description}`;
+
+            // Add event listeners for tooltip
+            d.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(d.dataset.tooltipText, event));
+            d.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+            d.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+
             cont.appendChild(d);
         });
+        // Fill remaining slots with empty placeholders for consistent grid
         for(let i=inv.length;i<8;i++){
             const empty=document.createElement('div');
-            empty.className='turbo-chip';empty.style.opacity='0.15';
+            empty.className='turbo-chip';
+            empty.style.opacity='0.15'; // Make empty slots less prominent
             cont.appendChild(empty);
         }
     }

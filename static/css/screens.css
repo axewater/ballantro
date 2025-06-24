@@ -407,9 +407,21 @@
 .shop-card.diamonds .card-rank, .shop-card.diamonds .card-suit, .shop-card.diamonds .card-rank-bottom { color: #3498db; }
 .shop-card.clubs .card-rank, .shop-card.clubs .card-suit, .shop-card.clubs .card-rank-bottom { color: #2ecc71; }
 .shop-card.spades .card-rank, .shop-card.spades .card-suit, .shop-card.spades .card-rank-bottom { color: #000000; }
-.shop-card.turbo .card-rank { color: #f093fb; } /* Example for turbo chip */
-.shop-card.turbo .card-suit { color: #fff; font-size: 0.9rem; margin-top: 10px; }
 
+.shop-card.turbo {
+    width: 100px; /* Square dimension */
+    height: 100px; /* Square dimension */
+    justify-content: center; /* Center icon vertically */
+    padding: 10px;
+}
+
+.shop-card.turbo .card-rank { /* This holds the icon */
+    font-size: 2.8rem; /* Larger icon */
+    color: #f093fb; /* Turbo chip color */
+}
+.shop-card.turbo .card-suit { /* This holds the name, hide it */
+    display: none;
+}
 
 .shop-card:hover {
     transform: translateY(-15px) scale(1.05);

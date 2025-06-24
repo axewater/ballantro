@@ -40,8 +40,8 @@ class CardManager {
 
     createCardElement(card, isSelected = false) {
         const cardElement = document.createElement('div');
-        cardElement.className = `card ${card.suit}${isSelected ? ' selected' : ''}`;
-        const hasEffect = card.effects && card.effects.length > 0;
+        cardElement.className = `card ${card.suit.toLowerCase()}${isSelected ? ' selected' : ''}`;
+        const hasEffects = card.effects && card.effects.length > 0;
         
         const rankElement = document.createElement('div');
         rankElement.className = 'card-rank';
@@ -54,12 +54,29 @@ class CardManager {
         cardElement.appendChild(rankElement);
         cardElement.appendChild(suitElement);
 
-        // 🔆  Special-card overlay
-        if (hasEffect) {
+        // Special-card overlay & Tooltip
+        if (hasEffects) {
             const effectIcon = document.createElement('div');
             effectIcon.className = 'card-effect-icon';
             effectIcon.textContent = '✦';
             cardElement.appendChild(effectIcon);
+
+            // Prepare tooltip content
+            let tooltipHTML = '';
+            card.effects.forEach((effectId, index) => {
+                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
+                if (effectInfo) {
+                    if (index > 0) tooltipHTML += '<br><br>'; // Separator for multiple effects
+                    tooltipHTML += `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                }
+            });
+
+            if (tooltipHTML) {
+                cardElement.dataset.tooltipText = tooltipHTML;
+                cardElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(tooltipHTML, event));
+                cardElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+                cardElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
+            }
         }
         
         return cardElement;

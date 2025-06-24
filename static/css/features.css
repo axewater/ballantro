@@ -238,23 +238,33 @@
 /* Turbo-Chip Inventory Panel */
 .inventory-panel { /* Extends .glass-panel */
     width: 200px; 
-    padding: 14px;
+    padding: 20px 14px; /* Increased top/bottom padding */
     color: white;
     position: fixed; 
     bottom: 20px;
     left: 20px;
+    min-height: 250px; /* Make panel taller */
+    height: auto; /* Allow it to grow if content exceeds min-height */
+    display: flex;
+    flex-direction: column;
 }
 .inventory-slots {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); /* Responsive columns for square chips */
+    gap: 10px; /* Slightly larger gap */
+    flex-grow: 1; /* Allow slots to take available space */
 }
 .turbo-chip {
     background: rgba(0,229,255,.15);
     border: 1px solid rgba(0,229,255,.4);
-    border-radius: 6px;
-    padding: 6px;
-    font-size: .7rem;
-    text-align: center;
+    border-radius: 8px; /* Slightly larger radius */
+    padding: 0; /* Remove padding, icon will center */
+    font-size: 1.5rem; /* Icon size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     backdrop-filter: blur(6px);
+    width: 45px;  /* Square chip */
+    height: 45px; /* Square chip */
+    cursor: default; /* Indicate it's not clickable, tooltip will handle info */
 }
