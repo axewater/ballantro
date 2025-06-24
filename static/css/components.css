@@ -127,13 +127,10 @@
 }
 
 .card.selected {
-    /* Golden glow for selected cards, no pulsation or other colors. */
-    border-color: #f1c40f;
-    /* Adjusted for a slightly more subtle golden glow */
-    box-shadow: 0 0 10px 2px rgba(241, 196, 15, 0.75);
-    /* Ensure no unwanted scaling, movement, or animations */
-    transform: none;
-    animation: none;
+    transform: translateY(-10px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    /* The existing transition on .card will make this snappy */
+    /* border-color can remain the default or be styled if needed, e.g., border-color: #f1c40f; */
 }
 
 .card-rank {
