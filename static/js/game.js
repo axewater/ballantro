@@ -154,11 +154,18 @@ class PokerGame {
         // capture the selected card-models _before_ state is reset
         const selIdx = this.cardManager.getSelectedCards();        // backend indices
         const selVisual = Array.from(this.cardManager.selectedCards); // visual order
+        
+        // NEW: Capture the actual DOM elements of the selected cards from the hand
+        const playerHandContainer = document.getElementById('player-hand');
+        const selectedHandCardElements = selVisual.map(visualIndex => {
+            return playerHandContainer.querySelector(`.card[data-index="${visualIndex}"]`);
+        }).filter(el => el); // Filter out any nulls if elements weren't found (should not happen)
+
         logClientHand("Hand BEFORE play hand request:", this.gameState.getHand());
         console.log("CLIENT: Selected card indices for play:", selIdx);
         // Capture **exact** Card objects the player sees, using visual indices
-        this.lastPlayedCards = selVisual.map(vIdx =>
-            this.cardManager.getCardByVisualIndex(this.gameState.gameState, vIdx)
+        this.lastPlayedCardsData = selVisual.map(vIdx => // Renamed to avoid confusion with elements
+            this.cardManager.getCardByVisualIndex(this.gameState.gameState, vIdx) // This gets card *data*
         );
 
         try {
@@ -173,9 +180,12 @@ class PokerGame {
                 this.gameState.setHandResult(data.hand_result, data.round_complete, data.money_awarded_this_round);
                 logClientHand("Hand AFTER play hand response (new hand dealt):", this.gameState.getHand());
                 
-                // Start the new scoring animation instead of showing popup
+                // Start the new scoring animation, passing the original card elements from the hand
                 this.scoringAnimationManager.startScoringAnimation(
-                    this.lastPlayedCards, data.hand_result, () => this.continueGame()
+                    this.lastPlayedCardsData, // The card *data* objects
+                    selectedHandCardElements, // The actual *DOM elements* from the hand
+                    data.hand_result, 
+                    () => this.continueGame()
                 );
             } else {
                 console.error('Failed to play hand:', data);

@@ -23,18 +23,22 @@ class ScoringAnimationManager{
     }
 
     /*  entry-point called by game.js  */
-    async startScoringAnimation(playedCards, handResult, onComplete){
+    async startScoringAnimation(playedCardsData, playedCardElements, handResult, onComplete){
         if(this.isAnimating) return;
         this.isAnimating = true;
 
+        // 0. Animate cards from hand to scoring area
+        //    This method will append the playedCardElements into this.cardRow
+        await this._animateCardsToScoringArea(playedCardElements, playedCardsData);
+
         /* 1. switch preview-panel to “scoring mode” (unchanged) */
         this._enterPreviewScoringMode(handResult.description);
-
-        /* 2. prepare new scoring area  */
-        this._setupScoringArea(playedCards, handResult);
+        
+        /* 2. prepare new scoring area (now uses existing cards in cardRow) */
+        this._setupScoringArea(playedCardsData, handResult); // Pass card data for logic, not for creating elements
 
         /* 3. process each card left→right */
-        await this._processCardsSequentially(playedCards);
+        await this._processCardsSequentially(playedCardsData);
 
         /* 4. inventory effects */
         await this._applyInventoryEffects();
@@ -67,7 +71,71 @@ class ScoringAnimationManager{
         this.previewPanel.classList.remove('scoring-mode');
     }
 
-    _setupScoringArea(cards, handResult){
+    async _animateCardsToScoringArea(cardElements, cardDataArray) {
+        const scoringCardRow = this.cardRow;
+        scoringCardRow.innerHTML = ''; // Clear it first
+
+        // Create temporary placeholders in the scoring row to get target positions
+        const placeholders = cardDataArray.map(cardData => {
+            const ph = document.createElement('div');
+            ph.className = 'card'; // Use card class for sizing
+            ph.style.visibility = 'hidden';
+            scoringCardRow.appendChild(ph);
+            return ph;
+        });
+
+        const targetPositions = placeholders.map(ph => {
+            const rect = ph.getBoundingClientRect();
+            return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+        });
+
+        // Remove placeholders
+        placeholders.forEach(ph => ph.remove());
+
+        const animationPromises = cardElements.map((cardEl, index) => {
+            return new Promise(resolve => {
+                const originalRect = cardEl.getBoundingClientRect();
+                const targetRect = targetPositions[index];
+
+                // Temporarily move to body and fix position for smooth animation
+                document.body.appendChild(cardEl);
+                cardEl.style.position = 'fixed';
+                cardEl.style.left = `${originalRect.left}px`;
+                cardEl.style.top = `${originalRect.top}px`;
+                cardEl.style.width = `${originalRect.width}px`;
+                cardEl.style.height = `${originalRect.height}px`;
+                cardEl.style.zIndex = '2000'; // Ensure it's on top
+                cardEl.style.transition = 'left 0.5s ease-out, top 0.5s ease-out, transform 0.5s ease-out';
+
+                // Trigger animation
+                requestAnimationFrame(() => {
+                    cardEl.style.left = `${targetRect.left}px`;
+                    cardEl.style.top = `${targetRect.top}px`;
+                    cardEl.style.transform = 'scale(1.0)'; // Can add a slight scale/rotate effect here
+                });
+
+                cardEl.addEventListener('transitionend', function onEnd() {
+                    cardEl.removeEventListener('transitionend', onEnd);
+                    // Reset styles and append to the actual scoring row
+                    cardEl.style.position = '';
+                    cardEl.style.left = '';
+                    cardEl.style.top = '';
+                    cardEl.style.width = '';
+                    cardEl.style.height = '';
+                    cardEl.style.zIndex = '';
+                    cardEl.style.transform = '';
+                    cardEl.style.transition = ''; // Clear transition
+                    cardEl.style.cursor = 'default'; // No longer clickable
+                    scoringCardRow.appendChild(cardEl); // Add to the final destination
+                    resolve();
+                }, { once: true });
+            });
+        });
+
+        await Promise.all(animationPromises);
+    }
+
+    _setupScoringArea(playedCardsData, handResult){
         /* reset values & card row */
         this.liveChipTotalEl.textContent = handResult.base_chips;
         /* multiplier starts with BASE multiplier (handResult.multiplier minus any card-boosts).  
@@ -77,13 +145,10 @@ class ScoringAnimationManager{
         this.liveMultTotalEl.textContent = this._baseMultiplier;
         this.liveFinalTotalEl.textContent='0';
 
-        this.cardRow.innerHTML='';
-        const cm = window.pokerGame.cardManager;
-        cards.forEach(card=>{
-            const el = cm.createCardElement(card,false);
-            el.style.cursor='default';
-            this.cardRow.appendChild(el);
-        });
+        // Card elements are now assumed to be in this.cardRow, moved by _animateCardsToScoringArea
+        // We just need to ensure they have the 'default' cursor if not already set.
+        Array.from(this.cardRow.children).forEach(el => el.style.cursor = 'default');
+
         /* internal running totals */
         this._runningChips = handResult.base_chips;
         this._runningMult  = this._baseMultiplier;
