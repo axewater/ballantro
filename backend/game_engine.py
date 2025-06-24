@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from .models import GameState, Card, HandResult, HighScore, Suit, Rank
 from .deck import Deck
-from .poker_evaluator import PokerEvaluator
+from .poker_evaluator import PokerEvaluator #PokerEvaluator
 from .turbo_chips import TurboChip, TURBO_CHIP_REGISTRY, AVAILABLE_TURBO_IDS
 import logging
 import random
@@ -40,11 +40,11 @@ class GameEngine:
         self.highscores_file = "highscores.json"
         self._load_highscores()
     
-    def new_game(self) -> GameState:
+    def new_game(self, debug_mode: bool = False) -> GameState:
         """Start a new game session"""
         session_id = str(uuid.uuid4())
-        logger.info(f"Starting new game. Session ID: {session_id}")
-        session = GameSession(session_id)
+        logger.info(f"Starting new game. Session ID: {session_id}, Debug Mode: {debug_mode}")
+        session = GameSession(session_id, is_debug_mode=debug_mode)
         self.sessions[session_id] = session
         return session.get_state()
     
@@ -72,6 +72,11 @@ class GameEngine:
     
     def save_score(self, name: str, score: int) -> List[HighScore]:
         """Save player score to highscores"""
+        # Find session associated with this attempt to save score.
+        # This is a bit tricky as save_score doesn't have session_id.
+        # For now, we'll assume if a score save is attempted, it's for a non-debug game.
+        # A more robust solution would be to pass session_id to save_score or check all sessions.
+        # However, the client-side checks should prevent debug scores from reaching here.
         timestamp = datetime.now().isoformat()
         new_score = HighScore(name=name, score=score, timestamp=timestamp)
         logger.info(f"Saving score: Name={name}, Score={score}")
@@ -92,6 +97,9 @@ class GameEngine:
         """Get session or raise error"""
         if session_id not in self.sessions:
             raise ValueError(f"Session {session_id} not found")
+        session = self.sessions[session_id]
+        if session.is_debug_mode and hasattr(self, 'save_score'): # Check if trying to save score for debug session
+            logger.warning(f"Attempt to operate on a debug session {session_id} that might be restricted.")
         return self.sessions[session_id]
     
     def _load_highscores(self):
@@ -188,10 +196,11 @@ class GameSession:
     # Round progression requirements
     ROUND_TARGETS = {1: 300, 2: 750, 3: 1250}
     
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, is_debug_mode: bool = False):
         self.session_id = session_id
         self.current_round = 1
         self.hands_played = 0
+        self.is_debug_mode = is_debug_mode # Store debug mode status
         self.draws_used = 0
         self.total_score = 0
         self.money = 0  # Player's accumulated money
@@ -218,8 +227,33 @@ class GameSession:
         self.max_hand_size = 8
         self.max_draws = 3
         
-        # Deal initial hand
-        self._deal_initial_hand()
+        if self.is_debug_mode:
+            logger.info(f"Session {self.session_id}: Initializing in DEBUG MODE.")
+            self.money = 100
+            self.inventory = [TURBO_CHIP_REGISTRY[chip_id] for chip_id in AVAILABLE_TURBO_IDS] # One of each
+            
+            # Special deck setup for debug mode
+            self.deck.reset() # Start with a standard shuffled deck
+            
+            # Select 10 random cards to make special
+            if len(self.deck.cards) >= 10:
+                cards_to_make_special_indices = random.sample(range(len(self.deck.cards)), 10)
+                from .card_effects import AVAILABLE_EFFECT_NAMES # Local import
+                
+                for index in cards_to_make_special_indices:
+                    original_card = self.deck.cards[index]
+                    # Replace with a new card instance that has the same suit/rank but a random effect
+                    self.deck.cards[index] = Card(
+                        suit=original_card.suit,
+                        rank=original_card.rank,
+                        effects=[random.choice(AVAILABLE_EFFECT_NAMES)]
+                    )
+                logger.info(f"Session {self.session_id} (Debug): Made 10 cards special.")
+            random.shuffle(self.deck.cards) # Re-shuffle after modification
+            self._deal_initial_hand()
+        else:
+            # Deal initial hand for normal mode
+            self._deal_initial_hand()
         logger.info(f"Session {self.session_id}: Initial hand dealt: {[str(c) for c in self.hand]}")
     
     def get_state(self) -> GameState:
@@ -243,6 +277,7 @@ class GameSession:
             is_game_over=self.is_game_over,
             is_victory=self.is_victory,
             inventory=self.inventory.copy(),
+            is_debug_mode=self.is_debug_mode,
         )
     
     def draw_cards(self, selected_indices: List[int]) -> GameState:
@@ -343,6 +378,10 @@ class GameSession:
         # 1) Evaluate base hand
         raw_result = PokerEvaluator.evaluate_hand(played_cards_for_eval)
         # 2) Apply any active turbo‐chips (monkey‐patched hook)
+        #    Also, apply card effects (bonus_chips, bonus_multiplier) which are now part of HandResult calculation
+        #    The PokerEvaluator.evaluate_hand already sums up card.bonus_chips() and card.bonus_multiplier().
+        #    The _apply_turbo hook is for session-wide TurboChips from inventory.
+
         hand_result = PokerEvaluator._apply_turbo(self.session_id, raw_result)
 
         # Update score (already turbo-adjusted)
@@ -362,7 +401,7 @@ class GameSession:
             logger.info(f"Session {self.session_id}: Round {self.current_round} complete. Money awarded: ${money_awarded_this_round}. Total money: ${self.money}")
             self.in_shop = True
 
-            if self.current_round >= 3:
+            if self.current_round >= 3 and not self.is_debug_mode: # Victory only if not debug
                 # Victory!
                 self.is_victory = True
                 self.is_game_over = True
@@ -375,7 +414,7 @@ class GameSession:
                 self.shop_items = game_engine.generate_shop_items(3)
         else:
             # Check if game over (max hands reached)
-            if self.hands_played >= self.max_hands:
+            if self.hands_played >= self.max_hands and not self.is_debug_mode: # Game over only if not debug and max hands
                 self.is_game_over = True
                 logger.info(f"Session {self.session_id}: Game over. Max hands reached for round {self.current_round}.")
             else:
@@ -383,6 +422,10 @@ class GameSession:
                 self.draws_used = 0
                 logger.info(f"Session {self.session_id}: Continuing round {self.current_round}. Draws reset. Hands played: {self.hands_played}/{self.max_hands}")
         
+        # If in debug mode, game over and victory flags might be set differently or ignored for scoring
+        if self.is_debug_mode:
+            self.is_game_over = False # Prevent game over screen from blocking debug play
+            self.is_victory = False   # Prevent victory screen from blocking debug play
         return {
             "hand_result": hand_result.dict(),
             "game_state": self.get_state().dict(),

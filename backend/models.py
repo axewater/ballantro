@@ -108,6 +108,7 @@ class GameState(BaseModel):
     is_victory: bool = False
     # active turbo chips (max 8)
     inventory: list[TurboChip] = []
+    is_debug_mode: bool = False
 
 class GameAction(BaseModel):
     session_id: str

@@ -5,6 +5,7 @@ class GameState {
         this.handResult = null;
         this.roundComplete = false;
         this.moneyAwardedThisRound = 0;
+        this.is_debug_mode = false;
     }
 
     setGameState(gameState) {
@@ -74,6 +75,10 @@ class GameState {
         return this.gameState?.is_victory || false;
     }
 
+    isDebugging() {
+        return this.gameState?.is_debug_mode || false;
+    }
+
     canDraw(selectedCount) {
         return selectedCount > 0 && this.getDrawsUsed() < this.getMaxDraws();
     }
@@ -88,6 +93,7 @@ class GameState {
         this.handResult = null;
         this.roundComplete = false;
         this.moneyAwardedThisRound = 0;
+        this.is_debug_mode = false;
     }
 }
 

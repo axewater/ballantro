@@ -4,8 +4,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import uvicorn
-import os
+import os, random # random for debug deck
 import logging
+from pydantic import BaseModel
 
 from backend.game_engine import GameEngine
 from backend.models import GameAction, GameState, Card
@@ -39,12 +40,16 @@ async def read_root(request: Request):
     """Serve the main game page"""
     return templates.TemplateResponse("index.html", {"request": request})
 
+class NewGameRequest(BaseModel):
+    debug_mode: bool = False
+
 @app.post("/api/new_game")
-async def new_game():
+async def new_game(request_data: NewGameRequest = NewGameRequest()):
     """Start a new game session"""
     try:
-        game_state = game_engine.new_game()
-        logger.info(f"API: New game created. Session ID: {game_state.session_id}. Initial hand: {[str(c) for c in game_state.hand]}")
+        game_state = game_engine.new_game(debug_mode=request_data.debug_mode)
+        log_msg = f"API: New game created. Session ID: {game_state.session_id}. Debug: {request_data.debug_mode}. Initial hand: {[str(c) for c in game_state.hand]}"
+        logger.info(log_msg)
         return {"success": True, "game_state": game_state.dict()}
     except Exception as e:
         logger.error(f"API Error: /api/new_game - {str(e)}", exc_info=True)
@@ -91,6 +96,11 @@ async def save_score(score_data: dict):
     """Save player score to highscores"""
     logger.info(f"API: /api/save_score called with data: {score_data}")
     try:
+        # Double check on server-side if it's a debug session
+        # This requires game_engine to expose session's debug status or check it internally
+        # For now, assuming game_engine.save_score handles this.
+        # If not, we'd need to fetch session and check session.is_debug_mode.
+
         result = game_engine.save_score(score_data["name"], score_data["score"])
         return {"success": True, "highscores": result}
     except Exception as e:

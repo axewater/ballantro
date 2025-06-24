@@ -3,11 +3,14 @@ class ApiClient {
         this.baseUrl = '';
     }
 
-    async newGame() {
+    async newGame(debugMode = false) {
         try {
             const response = await fetch('/api/new_game', {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ debug_mode: debugMode })
             });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return await response.json();
         } catch (error) {
             console.error('Error starting new game:', error);

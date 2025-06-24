@@ -17,7 +17,8 @@ class UIUpdater {
             playHandBtn: document.getElementById('play-hand-btn'),
             playerHand: document.getElementById('player-hand'),
             sortRankBtn: document.getElementById('sort-rank-btn'),
-            sortSuitBtn: document.getElementById('sort-suit-btn')
+            sortSuitBtn: document.getElementById('sort-suit-btn'),
+            debugModeIndicator: null // Will be created if needed
         };
     }
 
@@ -126,12 +127,28 @@ class UIUpdater {
         }
     }
 
-    showVictoryScreen(finalScore) {
+    showVictoryScreen(finalScore, isDebugging = false) {
         document.getElementById('final-score').textContent = finalScore;
+        const saveScoreBtn = document.getElementById('save-score-btn');
+        if (isDebugging) {
+            saveScoreBtn.style.display = 'none';
+        } else {
+            saveScoreBtn.style.display = 'inline-flex';
+        }
     }
 
-    showGameOverScreen(finalScore) {
+    showGameOverScreen(finalScore, isDebugging = false) {
         document.getElementById('game-over-score').textContent = finalScore;
+        const saveGameOverScoreBtn = document.getElementById('save-game-over-score-btn');
+        const playerNameInputSection = document.querySelector('#game-over-screen .name-input-section');
+
+        if (isDebugging) {
+            saveGameOverScoreBtn.style.display = 'none';
+            if (playerNameInputSection) playerNameInputSection.style.display = 'none';
+        } else {
+            saveGameOverScoreBtn.style.display = 'inline-flex';
+            if (playerNameInputSection) playerNameInputSection.style.display = 'block';
+        }
     }
 
     showHighscores(highscores) {
@@ -229,6 +246,27 @@ class UIUpdater {
             empty.style.opacity='0.15'; // Make empty slots less prominent
             cont.appendChild(empty);
         }
+    }
+
+    updateDebugModeIndicator(isDebugging) {
+        if (!this.elements.debugModeIndicator) {
+            const indicator = document.createElement('div');
+            indicator.id = 'debug-mode-indicator';
+            indicator.style.position = 'fixed';
+            indicator.style.top = '10px';
+            indicator.style.left = '50%';
+            indicator.style.transform = 'translateX(-50%)';
+            indicator.style.padding = '5px 10px';
+            indicator.style.background = 'rgba(255, 165, 0, 0.8)';
+            indicator.style.color = 'white';
+            indicator.style.borderRadius = '5px';
+            indicator.style.zIndex = '2000';
+            indicator.style.fontWeight = 'bold';
+            document.body.appendChild(indicator);
+            this.elements.debugModeIndicator = indicator;
+        }
+        this.elements.debugModeIndicator.textContent = isDebugging ? 'DEBUG MODE ACTIVE' : '';
+        this.elements.debugModeIndicator.style.display = isDebugging ? 'block' : 'none';
     }
 }
 

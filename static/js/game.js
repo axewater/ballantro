@@ -25,7 +25,8 @@ class PokerGame {
 
     initializeEventListeners() {
         // Startup screen
-        document.getElementById('start-game-btn').addEventListener('click', () => this.startNewGame());
+        document.getElementById('start-game-btn').addEventListener('click', () => this.startNewGame(false));
+        document.getElementById('start-debug-game-btn').addEventListener('click', () => this.startNewGame(true));
         document.getElementById('highscores-btn').addEventListener('click', () => this.showHighscores());
 
         // Game screen
@@ -73,11 +74,11 @@ class PokerGame {
         });
     }
 
-    async startNewGame() {
+    async startNewGame(debugMode = false) {
         if (this.cardManager.isSorting) return;
 
         try {
-            const data = await this.apiClient.newGame();
+            const data = await this.apiClient.newGame(debugMode);
             if (data.success) {
                 console.log("CLIENT: New game started. Initial game state received:", data.game_state);
                 this.gameState.setGameState(data.game_state);
@@ -88,6 +89,7 @@ class PokerGame {
                 this.screenManager.showScreen('game');
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType); // Update button visuals
+                this.uiUpdater.updateDebugModeIndicator(this.gameState.isDebugging());
                 logClientHand("Initial hand dealt:", this.gameState.getHand());
 
                 this.animateCardDraw();
@@ -203,6 +205,12 @@ class PokerGame {
     }
 
     saveVictoryScore() {
+        if (this.gameState.isDebugging()) {
+            alert("Highscores cannot be saved in Debug Mode.");
+            this.screenManager.hideNameModal();
+            this.screenManager.showScreen('startup'); // Or back to game over / victory without save
+            return;
+        }
         const name = document.getElementById('modal-player-name').value.trim();
         if (!name) {
             alert('Please enter your name.');
@@ -215,6 +223,11 @@ class PokerGame {
     }
 
     saveGameOverScore() {
+        if (this.gameState.isDebugging()) {
+            alert("Highscores cannot be saved in Debug Mode.");
+            this.screenManager.showScreen('startup'); // Or back to game over / victory without save
+            return;
+        }
         const name = document.getElementById('player-name').value.trim();
         if (!name) {
             alert('Please enter your name.');
@@ -226,6 +239,10 @@ class PokerGame {
     }
 
     async saveScore(name, score) {
+        if (this.gameState.isDebugging()) {
+            console.warn("Attempted to save score in debug mode. Aborted.");
+            return;
+        }
         try {
             const data = await this.apiClient.saveScore(name, score);
             if (!data.success) {
@@ -259,11 +276,11 @@ class PokerGame {
 
     continueGame() {
         if (this.cardManager.isSorting) return;
-        if (this.gameState.isVictory()) {
-            this.uiUpdater.showVictoryScreen(this.gameState.getTotalScore());
+        if (this.gameState.isVictory()) { // isVictory includes is_game_over
+            this.uiUpdater.showVictoryScreen(this.gameState.getTotalScore(), this.gameState.isDebugging());
             this.screenManager.showScreen('victory');
-        } else if (this.gameState.isGameOver()) {
-            this.uiUpdater.showGameOverScreen(this.gameState.getTotalScore());
+        } else if (this.gameState.isGameOver()) { // Game over but not victory
+            this.uiUpdater.showGameOverScreen(this.gameState.getTotalScore(), this.gameState.isDebugging());
             this.screenManager.showScreen('game-over');
         } else {
             // Check if round changed for transition animation
