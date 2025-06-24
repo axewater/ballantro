@@ -51,6 +51,7 @@
 
 .game-header { 
     width: 100%;
+    display: none; /* Hide the original game header as its content is moved */
 }
 
 .header-panel {
@@ -163,6 +164,7 @@
 
 .deck-icon {
     font-size: 1.5rem;
+    color: white; /* Make deck icon white */
 }
 
 .deck-count {

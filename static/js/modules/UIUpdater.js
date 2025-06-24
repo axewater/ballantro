@@ -11,7 +11,7 @@ class UIUpdater {
             drawsUsed: document.getElementById('draws-used'),
             shopMoneyDisplay: document.getElementById('shop-money-display'),
             maxDraws: document.getElementById('max-draws'),
-            deckRemaining: document.getElementById('deck-remaining'),
+
             selectionCount: document.getElementById('selection-count'),
             drawCardsBtn: document.getElementById('draw-cards-btn'),
             playHandBtn: document.getElementById('play-hand-btn'),
@@ -35,7 +35,7 @@ class UIUpdater {
         this.elements.maxHands.textContent = gameState.max_hands;
         this.elements.drawsUsed.textContent = gameState.draws_used;
         this.elements.maxDraws.textContent = gameState.max_draws;
-        this.elements.deckRemaining.textContent = gameState.deck_remaining;
+
         
         // Update button states
         this.updateButtonStates(gameState, selectedCount);

@@ -10,7 +10,6 @@ class ScoringAnimationManager {
         this.previewTitle = document.getElementById('preview-title');
         this.previewModeContent = document.getElementById('preview-mode-content');
         this.scoringModeContent = document.getElementById('scoring-mode-content');
-        this.finalScoreOverlay = document.getElementById('final-score-overlay');
         
         // Live scoring elements
         this.liveCardChips = document.getElementById('live-card-chips');
@@ -19,11 +18,6 @@ class ScoringAnimationManager {
         this.liveTotalScore = document.getElementById('live-total-score');
         this.liveBonusEffects = document.getElementById('live-bonus-effects');
         this.previewDescription = document.getElementById('preview-description');
-        
-        // Final overlay elements
-        this.finalHandTypeName = document.getElementById('final-hand-type-name');
-        this.finalHandDescription = document.getElementById('final-hand-description');
-        this.finalTotalScoreValue = document.getElementById('final-total-score-value');
     }
 
     async startScoringAnimation(playedCards, handResult, onComplete) {
@@ -41,12 +35,10 @@ class ScoringAnimationManager {
         // Animate each card being scored
         await this.animateCardScoring(playedCards, handResult);
         
-        // Show final overlay
-        await this.showFinalScoreOverlay(handResult);
-        
-        // Auto-transition after 5 seconds
+        // Auto-transition after a delay (e.g., 5 seconds, was previously for overlay)
+        // The overlay itself is removed, but we keep a pause before proceeding.
         setTimeout(() => {
-            this.hideFinalScoreOverlay();
+            // this.hideFinalScoreOverlay(); // Overlay is removed
             this.switchToPreviewMode();
             this.isAnimating = false;
             if (onComplete) onComplete();
@@ -195,21 +187,6 @@ class ScoringAnimationManager {
             };
             requestAnimationFrame(animate);
         });
-    }
-
-    async showFinalScoreOverlay(handResult) {
-        this.finalHandTypeName.textContent = this.formatHandType(handResult.hand_type);
-        this.finalHandDescription.textContent = handResult.description;
-        this.finalTotalScoreValue.textContent = handResult.total_score;
-        
-        this.finalScoreOverlay.classList.add('active');
-        
-        // Wait for overlay animation to complete
-        await this.delay(500);
-    }
-
-    hideFinalScoreOverlay() {
-        this.finalScoreOverlay.classList.remove('active');
     }
 
     getBaseChipValue(rank) {

@@ -31,6 +31,33 @@
             <!-- Live Score Preview Panel -->
             <div id="live-score-preview" class="glass-panel live-preview-panel">
                 <h4 id="preview-title" class="preview-title">Hand Preview</h4>
+                <!-- Game Info Items Moved Here -->
+                <div class="game-info-preview">
+                    <div class="info-item">
+                        <span class="info-label">Round</span>
+                        <span id="current-round" class="info-value">1</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Score</span>
+                        <span id="total-score" class="info-value">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Money</span>
+                        <span id="player-money" class="info-value">$0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Target</span>
+                        <span id="round-target" class="info-value">300</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Hands</span>
+                        <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Draws</span>
+                        <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
+                    </div>
+                </div>
                 
                 <!-- Preview Mode Content -->
                 <div id="preview-mode-content">
@@ -80,34 +107,7 @@
             <div class="main-game-content-wrapper">
                 <!-- Game Header -->
                 <div class="game-header">
-                    <div class="glass-panel header-panel">
-                        <div class="game-info">
-                            <div class="info-item">
-                                <span class="info-label">Round</span>
-                                <span id="current-round" class="info-value">1</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Score</span>
-                                <span id="total-score" class="info-value">0</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Money</span>
-                                <span id="player-money" class="info-value">$0</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Target</span>
-                                <span id="round-target" class="info-value">300</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Hands</span>
-                                <span id="hands-played" class="info-value">0</span>/<span id="max-hands" class="info-value">4</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Draws</span>
-                                <span id="draws-used" class="info-value">0</span>/<span id="max-draws" class="info-value">3</span>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Content moved to live-score-preview -->
                 </div>
 
                 <!-- Hand Area -->
@@ -125,20 +125,16 @@
                     <div class="glass-panel action-panel">
                         <div class="action-buttons">
                             <button id="draw-cards-btn" class="btn btn-secondary" disabled>
-                                <span class="btn-icon">🔄</span>
-                                Draw Cards
+                                DRAW
                             </button>
                             <button id="play-hand-btn" class="btn btn-primary" disabled>
-                                <span class="btn-icon">🎯</span>
-                                Play Hand
+                                PLAY
                             </button>
                             <button id="sort-rank-btn" class="btn btn-secondary">
-                                <span class="btn-icon">🔢</span>
-                                Sort by Rank
+                                RANK
                             </button>
                             <button id="sort-suit-btn" class="btn btn-secondary">
-                                <span class="btn-icon">♠️</span>
-                                Sort by Suit
+                                SUIT
                             </button>
                         </div>
                         <div class="selection-info">
@@ -151,9 +147,7 @@
                 <div class="deck-info">
                     <div id="deck-info-panel" class="glass-panel deck-panel clickable">
                         <div class="deck-icon">🂠</div>
-                        <div class="deck-count">
-                            <span id="deck-remaining">52</span> cards remaining
-                        </div>
+                        <!-- Deck count text removed -->
                     </div>
                 </div>
             </div>
@@ -350,25 +344,6 @@
                         <span class="btn-icon">➡️</span>
                         Next Round
                     </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Final Score Overlay -->
-        <div id="final-score-overlay" class="final-score-overlay">
-            <div class="glass-panel final-score-content">
-                <h2 class="final-score-title">Hand Complete!</h2>
-                <div class="final-score-details">
-                    <div class="final-hand-type">
-                        <span id="final-hand-type-name">Full House</span>
-                    </div>
-                    <div class="final-hand-description">
-                        <span id="final-hand-description">Aces over Kings</span>
-                    </div>
-                    <div class="final-total-score">
-                        <span class="final-score-label">Total Score:</span>
-                        <span id="final-total-score-value" class="final-score-value">721</span>
-                    </div>
                 </div>
             </div>
         </div>

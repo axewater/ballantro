@@ -1,11 +1,12 @@
 /* Live Score Preview Panel */
 .live-preview-panel { /* Extends .glass-panel */
-    width: 280px; 
+    width: 300px; /* Slightly wider to accommodate new info */
     padding: 20px;
     margin-right: 20px; 
     color: white;
     align-self: flex-start; 
-    height: fit-content; 
+    min-height: 450px; /* Increased min-height */
+    height: fit-content;
 }
 
 .live-preview-panel:hover { /* Override .glass-panel:hover transform */
@@ -15,6 +16,16 @@
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Styles for the moved game info items inside the preview panel */
+.game-info-preview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Arrange info items in 2 columns */
+    gap: 10px; /* Gap between items */
+    margin-bottom: 15px; /* Space before preview mode content */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Separator line */
+    padding-bottom: 10px; /* Padding for the separator */
 }
 
 .preview-title {
@@ -157,83 +168,7 @@
     color: #a29bfe;
 }
 
-/* Final Score Overlay */
-.final-score-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.5s ease;
-}
-
-.final-score-overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.final-score-content { /* Extends .glass-panel */
-    padding: 40px;
-    max-width: 500px;
-    text-align: center;
-    transform: scale(0.9);
-    transition: transform 0.5s ease;
-}
-
-.final-score-overlay.active .final-score-content {
-    transform: scale(1);
-}
-
-.final-score-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #f1c40f;
-    margin-bottom: 20px;
-    text-shadow: 0 4px 20px rgba(241, 196, 15, 0.5);
-}
-
-.final-hand-type {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #00e5ff; /* New accent colour */
-    margin-bottom: 10px;
-    text-shadow: 0 2px 15px rgba(0, 229, 255, 0.5);
-}
-
-.final-hand-description {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 30px;
-}
-
-.final-total-score { 
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.final-score-label { 
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 600;
-}
-
-.final-score-value { 
-    font-size: 2rem;
-    color: #4facfe;
-    font-weight: 700;
-    text-shadow: 0 2px 15px rgba(79, 172, 254, 0.5);
-}
+/* Final Score Overlay styles removed as the overlay is removed */
 
 /* Turbo-Chip Inventory Panel */
 .inventory-panel { /* Extends .glass-panel */
