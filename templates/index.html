@@ -22,15 +22,41 @@
         <div id="game-screen" class="screen">
             <!-- Live Score Preview Panel -->
             <div id="live-score-preview" class="glass-panel live-preview-panel">
-                <h4 class="preview-title">Hand Preview</h4>
-                <div class="preview-item">
-                    <span class="preview-label">Type:</span>
-                    <span id="preview-hand-type" class="preview-value">-</span>
+                <h4 id="preview-title" class="preview-title">Hand Preview</h4>
+                
+                <!-- Preview Mode Content -->
+                <div id="preview-mode-content">
+                    <div class="preview-item">
+                        <span class="preview-label">Type:</span>
+                        <span id="preview-hand-type" class="preview-value">-</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Base Score:</span>
+                        <span id="preview-base-score" class="preview-value">-</span>
+                    </div>
                 </div>
-                <div class="preview-item">
-                    <span class="preview-label">Base Score:</span>
-                    <span id="preview-base-score" class="preview-value">-</span>
+                
+                <!-- Scoring Mode Content -->
+                <div id="scoring-mode-content" style="display: none;">
+                    <div class="preview-item">
+                        <span class="preview-label">Card Chips:</span>
+                        <span id="live-card-chips" class="preview-value">0</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Base Chips:</span>
+                        <span id="live-base-chips" class="preview-value">0</span>
+                    </div>
+                    <div class="preview-item">
+                        <span class="preview-label">Multiplier:</span>
+                        <span id="live-multiplier" class="preview-value">×1</span>
+                    </div>
+                    <div class="preview-item total">
+                        <span class="preview-label">Total Score:</span>
+                        <span id="live-total-score" class="preview-value">0</span>
+                    </div>
+                    <div id="live-bonus-effects" class="bonus-effects-container"></div>
                 </div>
+                
                 <p id="preview-description" class="preview-description-text"></p>
                 <button id="show-payouts-btn" class="btn btn-secondary btn-small">
                     <span class="btn-icon">🏆</span>
@@ -312,6 +338,25 @@
             </div>
         </div>
 
+        <!-- Final Score Overlay -->
+        <div id="final-score-overlay" class="final-score-overlay">
+            <div class="glass-panel final-score-content">
+                <h2 class="final-score-title">Hand Complete!</h2>
+                <div class="final-score-details">
+                    <div class="final-hand-type">
+                        <span id="final-hand-type-name">Full House</span>
+                    </div>
+                    <div class="final-hand-description">
+                        <span id="final-hand-description">Aces over Kings</span>
+                    </div>
+                    <div class="final-total-score">
+                        <span class="final-score-label">Total Score:</span>
+                        <span id="final-total-score-value" class="final-score-value">721</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Name Input Modal -->
         <div id="name-modal" class="modal">
             <div class="modal-content glass-panel">
@@ -371,6 +416,7 @@
     <script src="/static/js/modules/ScreenManager.js"></script>
     <script src="/static/js/modules/UIUpdater.js"></script>
     <script src="/static/js/modules/PreviewManager.js"></script>
+    <script src="/static/js/modules/ScoringAnimationManager.js"></script>
     <script src="/static/js/game.js"></script>
     <script src="/static/js/starfield.js"></script>
     <script src="/static/js/animations.js"></script>

@@ -12,6 +12,7 @@ class PokerGame {
         this.screenManager = new ScreenManager();
         this.uiUpdater = new UIUpdater();
         this.previewManager = new PreviewManager(this.apiClient, this.cardManager);
+        this.scoringAnimationManager = new ScoringAnimationManager(this.previewManager, this.uiUpdater);
         // will hold the exact Card models the user played last
         this.lastPlayedCards = [];
         this.currentShopCards = []; // To store details of cards currently in the shop
@@ -172,7 +173,11 @@ class PokerGame {
                 this.cardManager.resetMapping(this.gameState.getHand().length); // fresh mapping after play
                 this.gameState.setHandResult(data.hand_result, data.round_complete, data.money_awarded_this_round);
                 logClientHand("Hand AFTER play hand response (new hand dealt):", this.gameState.getHand());
-                this.showScoringScreen();
+                
+                // Start the new scoring animation instead of showing popup
+                this.scoringAnimationManager.startScoringAnimation(
+                    this.lastPlayedCards, data.hand_result, () => this.continueGame()
+                );
             } else {
                 console.error('Failed to play hand:', data);
                 alert(data.message || 'Failed to play hand.');
@@ -250,25 +255,6 @@ class PokerGame {
             console.error('Error fetching remaining deck:', error);
             alert('Error loading remaining cards.');
         }
-    }
-
-    showScoringScreen() {
-        this.uiUpdater.showScoringScreen(
-            this.gameState.handResult,
-            this.lastPlayedCards,                 // exact cards we just played
-            this.gameState.moneyAwardedThisRound,
-            this.cardManager
-        );
-        this.screenManager.showScreen('scoring');
-        
-        // Enhanced scoring animation
-        const playedCardsContainer = document.getElementById('played-cards');
-        const playedCards = playedCardsContainer.querySelectorAll('.card');
-        window.gameAnimations.queueAnimation(() => 
-            window.gameAnimations.animateCardScoring(Array.from(playedCards), this.gameState.handResult)
-        );
-        // The .then() block that caused duplicate animations has been removed.
-        // animateCardScoring now handles the full sequence.
     }
 
     continueGame() {
