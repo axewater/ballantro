@@ -5,7 +5,7 @@
     const ctx = canvas.getContext("2d");
     let w, h, cx, cy, stars = [];
     const STAR_COUNT = 750;
-    const SPEED = 0.04; // tweak for effect
+    const SPEED = 0.01; // tweak for effect
     const Z_MAX = 8;
 
     const resize = () => {
@@ -48,7 +48,16 @@
                 return;
             }
 
-            const size = (1 - s.z / Z_MAX) * 3;
+            // Radius calc – can become slightly negative because s.z may start just
+            // above Z_MAX due to the random reset.  Instead of clamping to 0 (which
+            // can still result in a tiny negative because of float precision) we
+            // skip drawing stars that would be too small or invalid.
+            let size = (1 - s.z / Z_MAX) * 3;
+            if (size <= 0) {
+                // Star is “behind” viewer – recycle it on next frame
+                return;
+            }
+
             ctx.beginPath();
             ctx.arc(sx, sy, size, 0, Math.PI * 2);
             ctx.fill();

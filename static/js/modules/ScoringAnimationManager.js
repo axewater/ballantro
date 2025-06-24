@@ -1,215 +1,241 @@
-class ScoringAnimationManager {
-    constructor(previewManager, uiUpdater) {
+class ScoringAnimationManager{
+    constructor(previewManager, uiUpdater){
         this.previewManager = previewManager;
-        this.uiUpdater = uiUpdater;
+        this.uiUpdater     = uiUpdater;
+
+        /* Hand-preview panel elements (still used) */
+        this.previewPanel          = document.getElementById('live-score-preview');
+        this.previewTitle          = document.getElementById('preview-title');
+        this.previewModeContent    = document.getElementById('preview-mode-content');
+        this.scoringModeContent    = document.getElementById('scoring-mode-content');
+        this.previewDescription    = document.getElementById('preview-description');
+
+        /* NEW scoring-area elements */
+        this.scoringArea           = document.getElementById('scoring-area');
+        this.cardRow               = document.getElementById('scoring-card-row');
+        this.liveChipTotalEl       = document.getElementById('live-chip-total');
+        this.liveMultTotalEl       = document.getElementById('live-mult-total');
+        this.liveFinalTotalEl      = document.getElementById('live-final-total');
+
+        /* misc */
+        this.animationDelayPerCard = 700; // ms
         this.isAnimating = false;
-        this.animationSpeed = 1000; // ms per card
-        
-        // DOM elements
-        this.previewPanel = document.getElementById('live-score-preview');
-        this.previewTitle = document.getElementById('preview-title');
-        this.previewModeContent = document.getElementById('preview-mode-content');
-        this.scoringModeContent = document.getElementById('scoring-mode-content');
-        
-        // Live scoring elements
-        this.liveCardChips = document.getElementById('live-card-chips');
-        this.liveBaseChips = document.getElementById('live-base-chips');
-        this.liveMultiplier = document.getElementById('live-multiplier');
-        this.liveTotalScore = document.getElementById('live-total-score');
-        this.liveBonusEffects = document.getElementById('live-bonus-effects');
-        this.previewDescription = document.getElementById('preview-description');
     }
 
-    async startScoringAnimation(playedCards, handResult, onComplete) {
-        if (this.isAnimating) return;
-        
+    /*  entry-point called by game.js  */
+    async startScoringAnimation(playedCards, handResult, onComplete){
+        if(this.isAnimating) return;
         this.isAnimating = true;
-        console.log('Starting scoring animation for cards:', playedCards.map(c => `${c.rank}${c.suit}`));
-        
-        // Switch to scoring mode
-        this.switchToScoringMode();
-        
-        // Initialize scoring display
-        this.initializeScoringDisplay(handResult);
-        
-        // Animate each card being scored
-        await this.animateCardScoring(playedCards, handResult);
-        
-        // Auto-transition after a delay (e.g., 5 seconds, was previously for overlay)
-        // The overlay itself is removed, but we keep a pause before proceeding.
-        setTimeout(() => {
-            // this.hideFinalScoreOverlay(); // Overlay is removed
-            this.switchToPreviewMode();
-            this.isAnimating = false;
-            if (onComplete) onComplete();
-        }, 5000);
+
+        /* 1. switch preview-panel to “scoring mode” (unchanged) */
+        this._enterPreviewScoringMode(handResult.description);
+
+        /* 2. prepare new scoring area  */
+        this._setupScoringArea(playedCards, handResult);
+
+        /* 3. process each card left→right */
+        await this._processCardsSequentially(playedCards);
+
+        /* 4. inventory effects */
+        await this._applyInventoryEffects();
+
+        /* 5. final multiplication & count-up */
+        await this._finaliseScore();
+
+        /* 6. restore UI after small delay, then callback */
+        setTimeout(()=>{
+            this._exitPreviewScoringMode();
+            this._resetScoringArea();
+            this.isAnimating=false;
+            onComplete && onComplete();
+        },1200);
     }
 
-    switchToScoringMode() {
-        this.previewTitle.textContent = 'Scoring Hand...';
-        this.previewModeContent.style.display = 'none';
-        this.scoringModeContent.style.display = 'block';
+    /* ──────────  internal helpers  ────────── */
+
+    _enterPreviewScoringMode(desc){
+        this.previewTitle.textContent='Scoring Hand...';
+        this.previewModeContent.style.display='none';
+        this.scoringModeContent.style.display='block';
         this.previewPanel.classList.add('scoring-mode');
+        this.previewDescription.textContent = desc;
     }
-
-    switchToPreviewMode() {
-        this.previewTitle.textContent = 'Hand Preview';
-        this.previewModeContent.style.display = 'block';
-        this.scoringModeContent.style.display = 'none';
+    _exitPreviewScoringMode(){
+        this.previewTitle.textContent='Hand Preview';
+        this.previewModeContent.style.display='block';
+        this.scoringModeContent.style.display='none';
         this.previewPanel.classList.remove('scoring-mode');
     }
 
-    initializeScoringDisplay(handResult) {
-        // Reset all values to 0
-        this.liveCardChips.textContent = '0';
-        this.liveBaseChips.textContent = '0';
-        this.liveMultiplier.textContent = '×1';
-        this.liveTotalScore.textContent = '0';
-        this.liveBonusEffects.innerHTML = '';
-        this.previewDescription.textContent = handResult.description;
+    _setupScoringArea(cards, handResult){
+        /* reset values & card row */
+        this.liveChipTotalEl.textContent = handResult.base_chips;
+        /* multiplier starts with BASE multiplier (handResult.multiplier minus any card-boosts).  
+           For simplicity we’ll just start at (handResult.multiplier - sumCardBonusMult),
+           but if that’s tricky we simply use handResult.multiplier and add bonuses (dup harmless). */
+        this._baseMultiplier = handResult.multiplier;
+        this.liveMultTotalEl.textContent = this._baseMultiplier;
+        this.liveFinalTotalEl.textContent='0';
+
+        this.cardRow.innerHTML='';
+        const cm = window.pokerGame.cardManager;
+        cards.forEach(card=>{
+            const el = cm.createCardElement(card,false);
+            el.style.cursor='default';
+            this.cardRow.appendChild(el);
+        });
+        /* internal running totals */
+        this._runningChips = handResult.base_chips;
+        this._runningMult  = this._baseMultiplier;
+        this._finalTarget  = handResult.total_score; // already turbo chips etc. – used for final count-up
     }
 
-    async animateCardScoring(playedCards, handResult) {
-        const cardElements = document.querySelectorAll('#player-hand .card');
-        let runningCardChips = 0;
-        let runningBonusChips = 0;
-        let runningBonusMultiplier = 0;
-        const appliedEffects = [];
+    async _processCardsSequentially(cards){
+        const cm = window.pokerGame.cardManager;
+        for(let i=0;i<cards.length;i++){
+            const card = cards[i];
+            const cardEl = this.cardRow.children[i];
 
-        // Find which cards in the hand correspond to played cards
-        const playedCardElements = [];
-        playedCards.forEach(playedCard => {
-            const matchingElement = Array.from(cardElements).find(el => {
-                const cardIndex = parseInt(el.dataset.index);
-                const handCard = window.pokerGame.cardManager.getCardByVisualIndex(
-                    window.pokerGame.gameState.gameState, 
-                    cardIndex
-                );
-                return handCard && 
-                       handCard.rank === playedCard.rank && 
-                       handCard.suit === playedCard.suit;
-            });
-            if (matchingElement) {
-                playedCardElements.push({ element: matchingElement, card: playedCard });
+            /* shake */
+            // Ensure cardEl exists before trying to manipulate it
+            if (!cardEl) {
+                console.warn(`ScoringAnimationManager: Card element at index ${i} not found. Skipping animation for this card.`);
+                continue; // Skip to the next card if element is missing
             }
-        });
+            cardEl.classList.add('card-shaking');
+            await this._delay(150);
+            cardEl.classList.remove('card-shaking');
 
-        // Animate each played card
-        for (let i = 0; i < playedCardElements.length; i++) {
-            const { element, card } = playedCardElements[i];
-            
-            // Highlight the card
-            this.highlightCard(element);
-            
-            // Add card's base chip value
-            let baseChipValue;
-            if (typeof card._base_chip_value === 'function') {
-                baseChipValue = card._base_chip_value();
-            } else {
-                baseChipValue = this.getBaseChipValue(card.rank);
+            /* ▶ CHIP VALUE FLOAT */
+            const base = this._getBaseChipValueForCard(card);
+            await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
+            this._runningChips += base;
+            this.liveChipTotalEl.textContent = this._runningChips;
+
+            /* ▶ SPECIAL EFFECTS */
+            const bonusChips = this._getCardBonusChips(card);
+            if(bonusChips){
+                // Ensure cardEl is valid before spawning number
+                if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusChips}`, 'blue', this.liveChipTotalEl);
+                this._runningChips += bonusChips;
+                this.liveChipTotalEl.textContent = this._runningChips;
             }
-            runningCardChips += baseChipValue;
-            
-            // Add any bonus chips from effects
-            const bonusChips = card.bonus_chips ? card.bonus_chips() : 0;
-            const bonusMultiplier = card.bonus_multiplier ? card.bonus_multiplier() : 0;
-            
-            if (bonusChips > 0) {
-                runningBonusChips += bonusChips;
-                appliedEffects.push(`${card.rank} of ${card.suit}: +${bonusChips} chips`);
+            const bonusMult = this._getCardBonusMultiplier(card);
+            if(bonusMult){
+                // Ensure cardEl is valid before spawning number
+                if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusMult}`, 'red',  this.liveMultTotalEl);
+                this._runningMult += bonusMult;
+                this.liveMultTotalEl.textContent = this._runningMult;
             }
-            
-            if (bonusMultiplier > 0) {
-                runningBonusMultiplier += bonusMultiplier;
-                appliedEffects.push(`${card.rank} of ${card.suit}: +${bonusMultiplier} multiplier`);
-            }
-            
-            // Update display with animation
-            await this.animateValueUpdate(this.liveCardChips, runningCardChips + runningBonusChips);
-            
-            // Update bonus effects display
-            if (appliedEffects.length > 0) {
-                this.liveBonusEffects.innerHTML = appliedEffects.map(effect => 
-                    `<div class="bonus-effect">${effect}</div>`
-                ).join('');
-            }
-            
-            // Wait before next card
-            await this.delay(this.animationSpeed);
-            
-            // Remove highlight
-            this.unhighlightCard(element);
+            await this._delay(this.animationDelayPerCard - 300);
         }
-
-        // Final scoring calculation
-        const totalMultiplier = handResult.multiplier;
-        await this.animateValueUpdate(this.liveBaseChips, handResult.base_chips);
-        await this.delay(300);
-        
-        this.liveMultiplier.textContent = `×${totalMultiplier}`;
-        await this.delay(300);
-        
-        await this.animateValueUpdate(this.liveTotalScore, handResult.total_score);
     }
 
-    highlightCard(cardElement) {
-        cardElement.classList.add('card-scoring');
-        cardElement.style.zIndex = '100';
+    async _applyInventoryEffects(){
+        const invEls=document.querySelectorAll('.turbo-chip');
+        for(const chipEl of invEls){
+            chipEl.classList.add('flash');
+            await this._delay(150);
+            chipEl.classList.remove('flash');
+        }
+        /* inventory effects are already included by backend in total_score;
+           we just add a small pause so flash is visible. */
+        await this._delay(400);
     }
 
-    unhighlightCard(cardElement) {
-        cardElement.classList.remove('card-scoring');
-        cardElement.style.zIndex = '';
+    async _finaliseScore(){
+        /* pretty count-up animation to final total */
+        const start     = this._runningChips * this._runningMult;
+        const targetVal = this._finalTarget;
+        const el        = this.liveFinalTotalEl;
+        const duration  = 1000;
+        const t0=performance.now();
+        const step = (t)=>{
+            const p=Math.min((t-t0)/duration,1);
+            const v=Math.floor(start + (targetVal-start)*p);
+            el.textContent=v;
+            if(p<1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+        await this._delay(duration+50);
     }
 
-    async animateValueUpdate(element, targetValue) {
-        const startValue = parseInt(element.textContent.replace(/[^\d]/g, '')) || 0;
-        const duration = 500;
-        const startTime = performance.now();
-        
-        return new Promise(resolve => {
-            const animate = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeProgress = this.easeOutQuart(progress);
-                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeProgress);
-                
-                element.textContent = currentValue;
-                element.classList.add('score-counting');
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    element.textContent = targetValue;
-                    element.classList.remove('score-counting');
-                    resolve();
-                }
-            };
-            requestAnimationFrame(animate);
+    _resetScoringArea(){
+        this.cardRow.innerHTML='';
+        this.liveChipTotalEl.textContent='0';
+        this.liveMultTotalEl.textContent='1';
+        this.liveFinalTotalEl.textContent='0';
+    }
+
+    _getBaseChipValueForCard(card) {
+        if (!card || !card.rank) {
+            console.warn("ScoringAnimationManager: Invalid card object passed to _getBaseChipValueForCard", card);
+            return 0;
+        }
+        const rank = card.rank.toUpperCase(); // Ensure rank is uppercase for comparison
+        if (rank === 'A') {
+            return 11;
+        } else if (['K', 'Q', 'J'].includes(rank)) {
+            return 10;
+        } else if (!isNaN(parseInt(rank))) {
+            return parseInt(rank);
+        }
+        console.warn(`ScoringAnimationManager: Unknown rank "${card.rank}" in _getBaseChipValueForCard`);
+        return 0; // Default for unknown ranks
+    }
+
+    /* ----------  NEW HELPERS : client-side bonus resolution  ---------- */
+    _getCardBonusChips(card){
+        if(!card || !Array.isArray(card.effects)) return 0;
+        return card.effects
+            .filter(eff=>eff.startsWith('bonus_chips_'))
+            .reduce((sum,eff)=>{
+                const val=parseInt(eff.split('_').pop(),10);
+                return sum + (isNaN(val)?0:val);
+            },0);
+    }
+
+    _getCardBonusMultiplier(card){
+        if(!card || !Array.isArray(card.effects)) return 0;
+        return card.effects
+            .filter(eff=>eff.startsWith('bonus_multiplier_'))
+            .reduce((sum,eff)=>{
+                const val=parseInt(eff.split('_').pop(),10);
+                return sum + (isNaN(val)?0:val);
+            },0);
+    }
+
+    /* ──────────  tiny util helpers  ────────── */
+    _delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+    _spawnFloatingNum(originEl,text,colour,targetEl){
+        return new Promise(resolve=>{
+            const rect = originEl.getBoundingClientRect();
+            const tgt  = targetEl.getBoundingClientRect();
+
+            const span = document.createElement('span');
+            span.className=`floating-num ${colour==='red'?'red':'blue'}`;
+            span.textContent=text;
+            document.body.appendChild(span);
+
+            /* start @ card centre */
+            span.style.left = `${rect.left + rect.width/2}px`;
+            span.style.top  = `${rect.top  + rect.height/2}px`;
+
+            /* force reflow then animate to target */
+            requestAnimationFrame(()=>{
+                span.style.transition = 'transform .8s ease-out, opacity .8s ease-out';
+                span.style.transform  = `translate(${tgt.left - rect.left}px, ${tgt.top - rect.top}px)`;
+                span.style.opacity='0';
+            });
+
+            setTimeout(()=>{
+                span.remove();
+                resolve();
+            },800);
         });
-    }
-
-    getBaseChipValue(rank) {
-        if (rank === 'A') return 11;
-        if (['K', 'Q', 'J'].includes(rank)) return 10;
-        return parseInt(rank);
-    }
-
-    formatHandType(handType) {
-        return handType
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-    }
-
-    easeOutQuart(x) {
-        return 1 - Math.pow(1 - x, 4);
-    }
-
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 
-// Export for use in other modules
+/* global export */
 window.ScoringAnimationManager = ScoringAnimationManager;

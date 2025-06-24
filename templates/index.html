@@ -120,6 +120,22 @@
                         </div>
                     </div>
                 </div>
+                <!-- ──────────  LIVE SCORING AREA  ────────── -->
+                <div id="scoring-area" class="scoring-area">
+                    <div class="glass-panel scoring-live-panel">
+                        <h3 class="scoring-live-title">Total Score</h3>
+                        <div class="scoring-live-values">
+                            <span id="live-chip-total" class="chip-total">0</span>
+                            <span class="multiply-symbol">×</span>
+                            <span id="live-mult-total" class="mult-total">1</span>
+                            <span class="equals-symbol">=</span>
+                            <span id="live-final-total" class="final-total">0</span>
+                        </div>
+                    </div>
+
+                    <!-- played cards clone into this row -->
+                    <div id="scoring-card-row" class="scoring-card-row"></div>
+                </div>
 
                 <!-- Action Area -->
                 <div class="action-area">
@@ -407,12 +423,14 @@
     <script src="/static/js/modules/CardManager.js"></script>
     <script src="/static/js/modules/ScreenManager.js"></script>
     <script src="/static/js/modules/UIUpdater.js"></script>
-    <script src="/static/js/modules/TooltipManager.js"></script> <!-- Add TooltipManager -->
-    <script src="/static/js/modules/EffectDescriptions.js"></script> <!-- Add EffectDescriptions -->
+    <script src="/static/js/modules/TooltipManager.js"></script>
+    <script src="/static/js/modules/EffectDescriptions.js"></script>
     <script src="/static/js/modules/PreviewManager.js"></script>
+    <script src="/static/js/modules/GameAnimations.js"></script>
     <script src="/static/js/modules/ScoringAnimationManager.js"></script>
     <script src="/static/js/game.js"></script>
     <script src="/static/js/starfield.js"></script>
     <script src="/static/js/animations.js"></script>
+
 </body>
 </html>
