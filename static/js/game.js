@@ -427,6 +427,8 @@ class PokerGame {
     createShopCardElement(card, index) {
         const cardElement = document.createElement('div');
         cardElement.className = `shop-card ${card.suit.toLowerCase()}`;
+        /* --- store current index as data-attr so we can re-index later --- */
+        cardElement.dataset.index = index;
         
         // Rank (Top)
         const rankElement = document.createElement('div');
@@ -478,16 +480,27 @@ class PokerGame {
         cardElement.appendChild(iconArea);
         cardElement.appendChild(suitElement);
         cardElement.appendChild(priceElement);
-        
-        // Add click event to buy card
-        cardElement.addEventListener('click', () => this.buyCard(index));
+
+        /* -------------------------------------------------------------
+         * Click handler looks up the *live* dataset.index instead of
+         * using the original `index` captured in the closure.  This
+         * keeps client / server indices in sync after items are bought
+         * and removed from the shop array.
+         * ------------------------------------------------------------- */
+        cardElement.addEventListener('click', (e) =>
+            this.buyCard(
+                parseInt(e.currentTarget.dataset.index, 10),
+                e.currentTarget /* pass element for precise “sold” marking */
+            )
+        );
         
         return cardElement;
     }
 
     createTurboChipElement(chip,index){
         const el=document.createElement('div');
-        el.className='shop-card turbo'; // .card-suit is hidden by CSS
+        el.className='shop-card turbo';
+        el.dataset.index = index;
         // Only the icon (rank) will be visible
         el.innerHTML=`<div class="card-rank">⚡</div>`; 
         
@@ -498,7 +511,12 @@ class PokerGame {
         price.className='card-price';price.textContent='$1';
         el.appendChild(price);
         
-        el.addEventListener('click',()=>this.buyCard(index));
+        el.addEventListener('click',(e)=>
+            this.buyCard(
+                parseInt(e.currentTarget.dataset.index,10),
+                e.currentTarget
+            )
+        );
 
         // Add event listeners for tooltip
         el.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(el.dataset.tooltipText, event));
@@ -530,7 +548,7 @@ class PokerGame {
         }
     }
 
-    async buyCard(cardIndex) {
+    async buyCard(cardIndex, clickedElement = null) {
         if (this.shopRequestInFlight) return;          // ignore double clicks
         this.shopRequestInFlight = true;
         document.getElementById('next-round-btn').disabled = true; // lock N-Round
@@ -560,16 +578,29 @@ class PokerGame {
                     console.warn("Could not retrieve bought card details for logging purchase.");
                 }
 
-                // Update shop display
+                // --- UI ► mark SOLD exactly on the clicked element (robust) ---
+                if (clickedElement) {
+                    clickedElement.classList.add('sold');
+                    clickedElement.style.pointerEvents = 'none';
+                }
+
                 const shopCardsContainer = document.getElementById('shop-cards');
                 const cardElements = shopCardsContainer.querySelectorAll('.shop-card');
                 
-                // Mark the bought card as sold
-                cardElements[cardIndex].classList.add('sold');
-                cardElements[cardIndex].style.pointerEvents = 'none';
-                
-                // Update money display
-                document.getElementById('shop-money-display').textContent = `$${this.gameState.getMoney()}`;
+                /* --------------------------------------------------
+                 * 🔄  Sync **client-side index mapping**:
+                 *  1. Remove the bought item from the cached array.
+                 *  2. Re-index remaining DOM elements so their
+                 *     dataset.index matches the server’s indices.
+                 * -------------------------------------------------- */
+                if (this.currentShopCards && this.currentShopCards.length > cardIndex) {
+                    this.currentShopCards.splice(cardIndex, 1);
+                }
+                const remainingEls =
+                    shopCardsContainer.querySelectorAll('.shop-card:not(.sold)');
+                remainingEls.forEach((el, newIdx) => {
+                    el.dataset.index = newIdx;
+                });
                 
                 // Update reroll button state
                 document.getElementById('reroll-shop-btn').disabled = this.gameState.getMoney() < 1;
