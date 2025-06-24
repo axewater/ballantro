@@ -23,6 +23,12 @@ class PokerGame {
         // Sounds for shop purchase and round completion
         this.shopPurchaseSound = new Audio('/static/assets/sound/money_ching.mp3');
         this.roundCompleteSound = new Audio('/static/assets/sound/end_round.mp3');
+        // ───── NEW: card-click & multiplier sounds ─────
+        this.cardClickSound  = new Audio('/static/assets/sound/card_click.mp3');
+        this.scoreMultSound  = new Audio('/static/assets/sound/score_mult.mp3');
+        /* expose globally so other modules can play them without tight coupling */
+        window.cardClickSound  = this.cardClickSound;
+        window.scoreMultSound  = this.scoreMultSound;
 
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();

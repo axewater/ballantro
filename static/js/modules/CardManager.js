@@ -111,6 +111,12 @@ class CardManager {
             window.gameAnimations.animateCardSelection(cardElement, true);
         }
         
+        /* 🔊 play click sound */
+        if (window.cardClickSound) {
+            window.cardClickSound.currentTime = 0;
+            window.cardClickSound.play().catch(() => {});
+        }
+
         if (onSelectionChange) {
             onSelectionChange(this.selectedCards);
         }

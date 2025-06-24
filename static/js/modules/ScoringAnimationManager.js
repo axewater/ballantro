@@ -199,6 +199,11 @@ class ScoringAnimationManager{
                     if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusMult}`, 'red',  this.liveMultTotalEl);
                     this._runningMult += bonusMult;
                     this.liveMultTotalEl.textContent = this._runningMult;
+                    /* 🔊 multiplier sound */
+                    if (window.scoreMultSound) {
+                        window.scoreMultSound.currentTime = 0;
+                        window.scoreMultSound.play().catch(()=>{});
+                    }
                 }
             }
             await this._delay(this.animationDelayPerCard - 300);
@@ -215,6 +220,12 @@ class ScoringAnimationManager{
         /* inventory effects are already included by backend in total_score;
            we just add a small pause so flash is visible. */
         await this._delay(400);
+
+        /* 🔊 play multiplier sound once if any turbo chips could have affected score */
+        if (window.scoreMultSound && invEls.length){
+            window.scoreMultSound.currentTime = 0;
+            window.scoreMultSound.play().catch(()=>{});
+        }
     }
 
     async _finaliseScore(){
