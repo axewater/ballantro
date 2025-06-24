@@ -528,8 +528,11 @@ class PokerGame {
         const el=document.createElement('div');
         el.className='shop-card turbo';
         el.dataset.index = index;
-        // Only the icon (rank) will be visible
-        el.innerHTML=`<div class="card-rank">⚡</div>`; 
+        /* Unique icon for each turbo chip */
+        const iconChar =
+            (window.TurboChipIcons && window.TurboChipIcons[chip.effect_id]) ||
+            '⚡';
+        el.innerHTML=`<div class="card-rank">${iconChar}</div>`; 
         
         // Store tooltip text in a data attribute
         el.dataset.tooltipText = `<strong>${chip.name}</strong><br>${chip.description}`;

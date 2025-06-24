@@ -173,7 +173,10 @@ class UIUpdater {
         inv.forEach(chip=>{
             const d=document.createElement('div');
             d.className='turbo-chip'; // Will be styled as a square icon holder
-            d.innerHTML = '⚡'; // Display lightning icon
+            const iconChar =
+                (window.TurboChipIcons && window.TurboChipIcons[chip.effect_id]) ||
+                '⚡';
+            d.innerHTML = iconChar; // Unique icon per chip
             
             // Store tooltip text in a data attribute
             d.dataset.tooltipText = `<strong>${chip.name}</strong><br>${chip.description}`;

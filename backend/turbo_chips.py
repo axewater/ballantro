@@ -46,4 +46,41 @@ _register(
     )
 )
 
+# ------------------------------------------------------------------ #
+#  NEW suit-specific multiplier chips                               #
+# ------------------------------------------------------------------ #
+
+def _make_suit_multiplier_chip(name: str, effect_id: str, suit_str: str):
+    """
+    Returns a TurboChip that adds **+3** to the hand multiplier
+    *iff* at least one **triggered** card of the given suit scored.
+    The calculation is performed entirely client-side based on
+    `HandResult` + the original `played_cards` passed in by the
+    patched turbo hook.
+    """
+    def _apply(total: int, *, res=None, played_cards=None):
+        if res is None or played_cards is None or not res.triggered_indices:
+            return total
+        # Check if any triggered card matches the suit
+        for idx in res.triggered_indices:
+            if idx < len(played_cards) and str(getattr(played_cards[idx], "suit", "")) == suit_str:
+                # Re-compute total with (+3) multiplier
+                if res.multiplier == 0:          # safeguard
+                    return total
+                base_total = total // res.multiplier
+                return base_total * (res.multiplier + 3)
+        return total
+
+    return TurboChip(
+        name=name,
+        effect_id=effect_id,
+        description=f"+3 multiplier when a {suit_str[:-1] if suit_str.endswith('s') else suit_str} card is scored.",
+        apply_fn=_apply,
+    )
+
+_register(_make_suit_multiplier_chip("In the Club",     "mult_plus3_clubs",    "clubs"))
+_register(_make_suit_multiplier_chip("Girls Best Friend","mult_plus3_diamonds","diamonds"))
+_register(_make_suit_multiplier_chip("The Digger",      "mult_plus3_spades",   "spades"))
+_register(_make_suit_multiplier_chip("Cupido",          "mult_plus3_hearts",   "hearts"))
+
 AVAILABLE_TURBO_IDS: List[str] = list(TURBO_CHIP_REGISTRY.keys())

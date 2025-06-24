@@ -19,12 +19,16 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------ #
 _SESSION_INVENTORIES: dict[str, list[TurboChip]] = {}
 
-def _inject_turbo(session_id: str, res: "HandResult"):
+def _inject_turbo(session_id: str, res: "HandResult", played_cards: list["Card"] | None = None):
     inv = _SESSION_INVENTORIES.get(session_id, [])
     total = res.total_score
     applied = list(res.applied_bonuses)
     for chip in inv:
-        total = chip.apply_fn(total)
+        # Try extended signature first (for new chips); fall back to legacy.
+        try:
+            total = chip.apply_fn(total, res=res, played_cards=played_cards)
+        except TypeError:
+            total = chip.apply_fn(total)
         applied.append(f"Turbo '{chip.name}' applied")
     res.total_score = total
     res.applied_bonuses = applied
@@ -377,12 +381,10 @@ class GameSession:
         _SESSION_INVENTORIES[self.session_id] = self.inventory
         # 1) Evaluate base hand
         raw_result = PokerEvaluator.evaluate_hand(played_cards_for_eval)
-        # 2) Apply any active turbo‐chips (monkey‐patched hook)
-        #    Also, apply card effects (bonus_chips, bonus_multiplier) which are now part of HandResult calculation
-        #    The PokerEvaluator.evaluate_hand already sums up card.bonus_chips() and card.bonus_multiplier().
-        #    The _apply_turbo hook is for session-wide TurboChips from inventory.
-
-        hand_result = PokerEvaluator._apply_turbo(self.session_id, raw_result)
+        # 2) Apply any active turbo‐chips (monkey-patched hook).  We now pass
+        #    `played_cards_for_eval` as an extra argument so suit-specific
+        #    chips can inspect which cards actually scored.
+        hand_result = PokerEvaluator._apply_turbo(self.session_id, raw_result, played_cards_for_eval)
 
         # Update score (already turbo-adjusted)
         self.total_score += hand_result.total_score
