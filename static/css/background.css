@@ -1,0 +1,50 @@
+/* Background */
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden; /* From Hi-tech neon backdrop */
+}
+
+/* Hi-tech neon backdrop - replaces original .bg-gradient and .bg-pattern */
+body {
+    background: #000; /* Overrides base.css body background */
+}
+
+.bg-gradient { /* old gradient removed */
+    display: none;
+}
+
+/* .bg-pattern and its @keyframes float are effectively removed by the new background styles */
+
+.bg-lines {
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent 0 48px,
+            rgba(160,0,255,.25) 48px 50px
+        );
+    animation: scrollLines 20s linear infinite;
+}
+
+.bg-stars {
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'><circle cx='1' cy='1' r='1' fill='white'/></svg>") repeat;
+    opacity: .7;
+    animation: rotateStars 60s linear infinite;
+}
+
+#starfield {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2; /* Ensure it's behind bg-lines and bg-stars if they are also used */
+}

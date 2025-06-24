@@ -1,0 +1,88 @@
+/* Original background pattern animation (no longer used by default but kept if needed) */
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(1deg); }
+}
+
+/* Startup screen title icon animation */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Card selection animation */
+@keyframes cardSelected {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.15); }
+    100% { transform: translateY(-15px) scale(1.1); }
+}
+
+/* Scoring screen card reveal animation */
+@keyframes cardReveal {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Victory screen title animation */
+@keyframes victoryPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Card scoring animation */
+@keyframes cardScoring {
+    0% {
+        transform: translateY(0) scale(1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        transform: translateY(-20px) scale(1.1);
+        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.6);
+    }
+    100% {
+        transform: translateY(-10px) scale(1.05);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+    }
+}
+/* Class to apply the cardScoring animation with important overrides */
+.card-scoring {
+    animation: cardScoring 1s ease forwards !important;
+    z-index: 100 !important;
+}
+
+
+/* Score value counting animation */
+@keyframes scoreCount { 
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #f093fb; } /* Color pulse during count */
+    100% { transform: scale(1); }
+}
+/* Class to apply the scoreCount animation */
+.score-counting { 
+    /* animation: scoreCount 2s ease forwards; Duration is often set in JS for dynamic counting */
+}
+
+
+/* Card sorting animation */
+@keyframes cardSort { 
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-30px); }
+    100% { transform: translateY(0); }
+}
+/* Class to apply the cardSort animation */
+.sorting { 
+    animation: cardSort 0.5s ease;
+}
+
+/* Hi-tech neon backdrop animations */
+@keyframes scrollLines {
+    from { background-position: 0 0; }
+    to   { background-position: 400px 400px; }
+}
+
+@keyframes rotateStars {
+    from { transform: translateZ(0) rotate(0deg) scale(1); }
+    to   { transform: translateZ(0) rotate(360deg) scale(1.5); }
+}

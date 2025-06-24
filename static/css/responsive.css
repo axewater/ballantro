@@ -1,0 +1,86 @@
+@media (max-width: 768px) {
+    #game-screen {
+        flex-direction: column; 
+        align-items: center; 
+    }
+    .live-preview-panel {
+        width: 90%; 
+        max-width: 350px;
+        margin-right: 0; 
+        margin-bottom: 20px; 
+        order: -1; 
+    }
+    .inventory-panel { /* Adjust inventory panel for small screens if needed */
+        width: 90%;
+        max-width: 350px; /* Or a fixed width like 200px */
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 10px; 
+        /* Or stack it if game-screen content becomes too tall */
+    }
+    .deck-info { /* Adjust deck info for small screens */
+        bottom: 10px; /* May overlap with inventory if not careful */
+        right: 10px;
+        /* Consider moving it or making it smaller */
+    }
+    .game-container {
+        padding: 10px;
+    }
+    .main-menu {
+        padding: 40px 30px;
+    }
+    .game-title {
+        font-size: 2.5rem;
+    }
+    .card {
+        width: 60px;
+        height: 84px;
+        padding: 6px 3px;
+    }
+    .card-rank,
+    .card-rank-bottom {
+        font-size: 1rem;
+    }
+    .card-suit {
+        font-size: 1.2rem;
+    }
+    .action-panel {
+        flex-direction: column;
+        text-align: center;
+    }
+    .game-info {
+        justify-content: center;
+        gap: 15px;
+    }
+    .info-value {
+        font-size: 1.2rem;
+    }
+    .main-game-content-wrapper {
+        width: 100%; 
+    }
+    .shop-cards {
+        gap: 15px;
+    }
+    .shop-card {
+        width: 100px;
+        height: 140px;
+    }
+    .shop-card .card-rank, .shop-card .card-rank-bottom { font-size: 1.5rem; }
+    .shop-card .card-suit { font-size: 1.8rem; }
+
+    .modal-content, 
+    #payouts-modal .modal-content, 
+    .remaining-deck-content {
+        max-width: 90vw;
+        padding: 20px;
+    }
+    .btn {
+        padding: 12px 24px;
+        font-size: 1rem;
+        min-width: 150px;
+    }
+    .btn-small {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+    }
+}
