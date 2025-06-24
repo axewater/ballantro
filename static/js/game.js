@@ -20,6 +20,9 @@ class PokerGame {
 
         // Sound for cards being dealt
         this.cardDealSound = new Audio('/static/assets/sound/cards_dealt.mp3');
+        // Sounds for shop purchase and round completion
+        this.shopPurchaseSound = new Audio('/static/assets/sound/money_ching.mp3');
+        this.roundCompleteSound = new Audio('/static/assets/sound/end_round.mp3');
 
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();
@@ -295,6 +298,11 @@ class PokerGame {
         } else {
             // Check if round changed for transition animation
             if (this.gameState.isInShop()) {
+                // Play round complete sound as we are entering the shop
+                this.roundCompleteSound.currentTime = 0;
+                this.roundCompleteSound.play().catch(error => {
+                    console.warn("CLIENT: Could not play round complete sound:", error);
+                });
                 // If we're in shop mode, show the shop screen
                 this.showShopScreen();
                 return;
@@ -581,6 +589,12 @@ class PokerGame {
             const data = await this.apiClient.buyCard(this.gameState.sessionId, cardIndex);
             
             if (data.success) {
+                // Play shop purchase sound
+                this.shopPurchaseSound.currentTime = 0;
+                this.shopPurchaseSound.play().catch(error => {
+                    console.warn("CLIENT: Could not play shop purchase sound:", error);
+                });
+
                 // Update game state *first* so getDeckRemaining() is accurate for logging
                 // Update game state
                 this.gameState.setGameState(data.game_state);
