@@ -500,7 +500,7 @@
                 
                 // Skip video on click or key press
                 videoContainer.addEventListener('click', skipVideoAndShowMenu);
-                document.addEventListener('keydown', skipVideoAndShowMenu);
+                // document.addEventListener('keydown', skipVideoAndShowMenu); // Removed to prevent keys from returning to menu
             });
 
             // Intercept the start game button click to ensure video is stopped
