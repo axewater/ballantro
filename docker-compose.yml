@@ -1,0 +1,15 @@
+services:
+  ballantro_web:
+    build: .
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./main.py:/app/main.py
+      - ./backend:/app/backend
+      - ./static:/app/static
+      - ./templates:/app/templates
+      - ./highscores.json:/app/highscores.json
+    # The command is already specified in the Dockerfile's CMD instruction,
+    # so we don't need to repeat it here unless we want to override it.
+    # The --reload flag in the Dockerfile's CMD will work with the volume mounts
+    # to automatically reload the app when code changes.

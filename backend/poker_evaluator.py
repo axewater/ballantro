@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from collections import Counter, defaultdict
 from .models import Card, HandType, HandResult, Rank
+import random
 
 class PokerEvaluator:
     """Comprehensive poker hand evaluation with exact scoring"""
@@ -49,11 +50,44 @@ class PokerEvaluator:
         # 1)  Calculate **card chips** & accumulated bonuses (triggered)     #
         # ------------------------------------------------------------------ #
         base_card_chips = sum(c._base_chip_value() for c in triggered_cards)
-        bonus_chips     = sum(c.bonus_chips()       for c in triggered_cards)
-        card_chips      = base_card_chips + bonus_chips
+        bonus_chips     = 0
+        bonus_multiplier = 0
+        money_bonus     = 0
 
-        # Collect applied bonus descriptions
         applied_bonuses_descriptions: List[str] = []
+        for card in triggered_cards:
+            # Static chip / mult bonuses
+            bonus_chips       += card.bonus_chips()
+            bonus_multiplier  += card.bonus_multiplier()
+
+            # --- dynamic / money effects --------------------------------- #
+            for eff in card.effects:
+                if eff.startswith("bonus_money_"):
+                    try:
+                        money_bonus += int(eff.split("_")[-1])
+                    except ValueError:
+                        pass
+                elif eff == "bonus_random":
+                    outcome = random.choice(["money", "mult", "chips"])
+                    if outcome == "money":
+                        money_bonus    += 1
+                        applied_bonuses_descriptions.append(
+                            f"{card.rank.value}{card.suit.value[0].upper()}: Mystery → +$1"
+                        )
+                    elif outcome == "mult":
+                        bonus_multiplier += 5
+                        applied_bonuses_descriptions.append(
+                            f"{card.rank.value}{card.suit.value[0].upper()}: Mystery → +5× Mult"
+                        )
+                    else:  # chips
+                        bonus_chips += 25
+                        applied_bonuses_descriptions.append(
+                            f"{card.rank.value}{card.suit.value[0].upper()}: Mystery → +25 Chips"
+                        )
+
+        card_chips = base_card_chips + bonus_chips
+
+        # Collect applied bonus descriptions for static bonuses as well
         for card in triggered_cards:
             card_name_str = f"{card.rank.value} of {card.suit.value.capitalize()}" # e.g. "Ace of Spades"
             if card.bonus_chips() > 0:
@@ -70,8 +104,6 @@ class PokerEvaluator:
         base_chips = score_info["base_chips"]
         base_multiplier = score_info["multiplier"]
         
-        bonus_multiplier = sum(card.bonus_multiplier() for card in triggered_cards)
-        
         multiplier = base_multiplier + bonus_multiplier
         
         # Calculate total score: (card_chips + base_chips) * multiplier
@@ -86,6 +118,7 @@ class PokerEvaluator:
             multiplier=multiplier,
             card_chips=card_chips,
             total_score=total_score,
+            money_bonus=money_bonus,
             description=description,
             applied_bonuses=applied_bonuses_descriptions,
             triggered_indices=triggered_indices,

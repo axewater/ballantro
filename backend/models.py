@@ -86,6 +86,7 @@ class HandResult(BaseModel):
     multiplier: int
     card_chips: int
     total_score: int
+    money_bonus: int = 0        # NEW – $ gained from special effects
     description: str
     applied_bonuses: List[str] = [] # List of strings describing card-specific bonuses
     # Indices (0-based, order preserved) of cards that actually contributed
@@ -121,3 +122,7 @@ class HighScore(BaseModel):
     name: str
     score: int
     timestamp: str
+
+class SaveScoreRequest(BaseModel):
+    name: str
+    session_id: str

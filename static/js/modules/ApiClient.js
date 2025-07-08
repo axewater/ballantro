@@ -62,12 +62,12 @@ class ApiClient {
         }
     }
 
-    async saveScore(name, score) {
+    async saveScore(name, sessionId) {
         try {
             const response = await fetch('/api/save_score', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score })
+                body: JSON.stringify({ name: name, session_id: sessionId })
             });
             return await response.json();
         } catch (error) {

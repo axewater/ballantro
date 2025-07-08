@@ -65,6 +65,16 @@ class CardManager {
                         iconElement.className = 'card-bonus-multiplier-icon';
                         iconElement.textContent = '★'; // Black Star
                         iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                    } else if (effectId.startsWith('bonus_money')) {
+                        iconElement = document.createElement('div');
+                        iconElement.className = 'card-bonus-money-icon';
+                        iconElement.textContent = '$';
+                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
+                    } else if (effectId === 'bonus_random') {
+                        iconElement = document.createElement('div');
+                        iconElement.className = 'card-bonus-random-icon';
+                        iconElement.textContent = '?';
+                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
                     }
 
                     if (iconElement) {

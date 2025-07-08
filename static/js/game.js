@@ -250,7 +250,7 @@ class PokerGame {
             return;
         }
         
-        this.saveScore(name, this.gameState.getTotalScore());
+        this.saveScore(name);
         this.screenManager.hideNameModal();
         this.showHighscores();
     }
@@ -267,22 +267,26 @@ class PokerGame {
             return;
         }
         
-        this.saveScore(name, this.gameState.getTotalScore());
+        this.saveScore(name);
         this.showHighscores();
     }
 
-    async saveScore(name, score) {
+    async saveScore(name) {
         if (this.gameState.isDebugging()) {
             console.warn("Attempted to save score in debug mode. Aborted.");
             return;
         }
         try {
-            const data = await this.apiClient.saveScore(name, score);
+            // The API now requires the session ID to securely fetch the score from the backend.
+            const data = await this.apiClient.saveScore(name, this.gameState.sessionId);
             if (!data.success) {
                 console.error('Failed to save score:', data);
+                // Optionally, show an error to the user
+                alert(`Error saving score: ${data.detail || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error saving score:', error);
+            alert(`An error occurred while saving your score.`);
         }
     }
 

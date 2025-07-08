@@ -69,6 +69,26 @@ class BonusMultiplierEffect(CardEffect):
         super().__init__(name="bonus_multiplier_5", bonus_multiplier=5)
 
 
+# ------------------------------------------------------------------ #
+#  NEW effects                                                       #
+# ------------------------------------------------------------------ #
+
+class BonusMoneyEffect(CardEffect):
+    """Grants +$2 when the card is scored (no chip / mult impact)."""
+
+    def __init__(self):
+        super().__init__(name="bonus_money_2")  # no chip / mult bonuses
+
+class RandomBonusEffect(CardEffect):
+    """
+    '?' mystery card – actual bonus is resolved *at scoring time*
+    so the static definition carries no fixed values.
+    """
+
+    def __init__(self):
+        super().__init__(name="bonus_random")
+
+
 # ---------------------------------------------------------------------- #
 #  Effect registry – lookup by string identifier (stored in JSON)
 # ---------------------------------------------------------------------- #
@@ -84,6 +104,8 @@ def _register(effect: CardEffect):
 # Register default effects
 _register(BonusChipsEffect())
 _register(BonusMultiplierEffect())
+_register(BonusMoneyEffect())     # NEW
+_register(RandomBonusEffect())    # NEW
 
 # Convenience export – only the names are needed when serialising.
 AVAILABLE_EFFECT_NAMES = list(EFFECT_REGISTRY.keys())

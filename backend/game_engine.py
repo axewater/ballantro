@@ -74,16 +74,24 @@ class GameEngine:
         session = self._get_session(session_id)
         return session.get_state()
     
-    def save_score(self, name: str, score: int) -> List[HighScore]:
-        """Save player score to highscores"""
-        # Find session associated with this attempt to save score.
-        # This is a bit tricky as save_score doesn't have session_id.
-        # For now, we'll assume if a score save is attempted, it's for a non-debug game.
-        # A more robust solution would be to pass session_id to save_score or check all sessions.
-        # However, the client-side checks should prevent debug scores from reaching here.
+    def save_score(self, session_id: str, name: str) -> List[HighScore]:
+        """Save player score to highscores, verifying from server-side state."""
+        session = self._get_session(session_id)
+
+        # Security check: Do not save scores from debug sessions.
+        if session.is_debug_mode:
+            raise ValueError("Cannot save scores from a debug session.")
+
+        # Security check: Only save scores if the game is actually over.
+        if not session.is_game_over:
+            raise ValueError("Cannot save score for a game that is not over.")
+
+        # The score is retrieved from the server-side session, not the client request.
+        score = session.total_score
+
         timestamp = datetime.now().isoformat()
         new_score = HighScore(name=name, score=score, timestamp=timestamp)
-        logger.info(f"Saving score: Name={name}, Score={score}")
+        logger.info(f"Saving verified score for session {session_id}: Name={name}, Score={score}")
         
         self.highscores.append(new_score)
         self.highscores.sort(key=lambda x: x.score, reverse=True)
@@ -179,13 +187,13 @@ class GameEngine:
     # -------- NEW -------- #
     def generate_shop_items(self, count: int = 3) -> list[dict]:
         """
-        Return a list of `count` shop items.
-        75 % Card • 25 % TurboChip
+        Return a list of `count` shop items. 
+        85 % Card • 15 % TurboChip
         Each item is serialisable and contains a key `item_type`.
         """
         items: list[dict] = []
         for _ in range(count):
-            if random.random() < 0.25:  # Turbo-Chip
+            if random.random() < 0.15:  # Turbo-Chip (15% chance)
                 chip_id = random.choice(AVAILABLE_TURBO_IDS)
                 chip = TURBO_CHIP_REGISTRY[chip_id]
                 items.append({"item_type": "turbo", **chip.dict()})
@@ -388,6 +396,13 @@ class GameSession:
 
         # Update score (already turbo-adjusted)
         self.total_score += hand_result.total_score
+        # ✚ money from card effects
+        if hand_result.money_bonus:
+            self.money += hand_result.money_bonus
+            logger.info(
+                "Session %s: Card effects granted +$%d (total money now $%d)",
+                self.session_id, hand_result.money_bonus, self.money
+            )
         self.hands_played += 1
         logger.info(f"Session {self.session_id}: Hand evaluated. Type: {hand_result.hand_type}, Score: {hand_result.total_score}. Total score: {self.total_score}")
         

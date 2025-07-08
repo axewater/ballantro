@@ -169,6 +169,15 @@
     text-shadow: 0 0 4px rgba(231, 76, 60, 0.6), 0 0 6px rgba(231, 76, 60, 0.3);
 }
 
+.card-bonus-money-icon{
+    color:#2ecc71;
+    text-shadow:0 0 4px rgba(46,204,113,.6),0 0 6px rgba(46,204,113,.3);
+}
+.card-bonus-random-icon{
+    color:#f1c40f;
+    text-shadow:0 0 4px rgba(241,196,15,.6),0 0 6px rgba(241,196,15,.3);
+}
+
 .card-suit {
     font-size: 1.5rem;
     line-height: 1;

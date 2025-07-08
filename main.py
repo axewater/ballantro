@@ -9,7 +9,7 @@ import logging
 from pydantic import BaseModel
 
 from backend.game_engine import GameEngine
-from backend.models import GameAction, GameState, Card
+from backend.models import GameAction, GameState, Card, SaveScoreRequest
 
 app = FastAPI(title="Poker Game", description="Single-player poker card game")
 
@@ -97,16 +97,15 @@ async def get_game_state(session_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 @app.post("/api/save_score")
-async def save_score(score_data: dict):
+async def save_score(score_data: SaveScoreRequest):
     """Save player score to highscores"""
-    logger.info(f"API: /api/save_score called with data: {score_data}")
+    logger.info(f"API: /api/save_score called for session {score_data.session_id} with name '{score_data.name}'")
     try:
-        # Double check on server-side if it's a debug session
-        # This requires game_engine to expose session's debug status or check it internally
-        # For now, assuming game_engine.save_score handles this.
-        # If not, we'd need to fetch session and check session.is_debug_mode.
-
-        result = game_engine.save_score(score_data["name"], score_data["score"])
+        # The score is no longer sent from the client.
+        # The game engine will look up the score from the session ID.
+        result = game_engine.save_score(
+            session_id=score_data.session_id, name=score_data.name
+        )
         return {"success": True, "highscores": result}
     except Exception as e:
         logger.error(f"API Error: /api/save_score - {str(e)}", exc_info=True)

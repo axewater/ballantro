@@ -14,6 +14,14 @@ const EffectDescriptions = {
     'bonus_multiplier_5': {
         name: 'Bonus Multiplier',
         description: 'Adds +5 to the hand multiplier when this card is part of a scored hand.'
+    },
+    'bonus_money_2': {
+        name: 'Cash Bonus',
+        description: 'Awards $2 immediately when this card scores.'
+    },
+    'bonus_random': {
+        name: 'Mystery Bonus',
+        description: 'When scored, randomly grants +$1, +5× multiplier or +25 chips.'
     }
     // Add more effect descriptions here as they are created
 };
