@@ -84,7 +84,7 @@ class GameState {
     }
 
     canPlayHand(selectedCount) {
-        return selectedCount === 5;
+        return selectedCount >= 1 && selectedCount <= 5;
     }
 
     reset() {

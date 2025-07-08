@@ -210,11 +210,11 @@ class PokerGame {
     async playHand() {
         this._playButtonSound();
         if (this.cardManager.isSorting) return;
-        if (this.cardManager.getSelectedCount() !== 5) {
-            alert('Please select exactly 5 cards to play.');
+        if (this.cardManager.getSelectedCount() < 1 || this.cardManager.getSelectedCount() > 5) {
+            alert('Please select 1 to 5 cards to play.');
             return;
         }
-
+        
         // capture the selected card-models _before_ state is reset
         const selIdx = this.cardManager.getSelectedCards();        // backend indices
         const selVisual = Array.from(this.cardManager.selectedCards); // visual order

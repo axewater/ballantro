@@ -37,8 +37,8 @@ class PokerEvaluator:
     @classmethod
     def evaluate_hand(cls, cards: List[Card]) -> HandResult:
         """Evaluate a poker hand and return complete scoring information"""
-        if len(cards) != 5:
-            raise ValueError("Hand must contain exactly 5 cards")
+        if len(cards) < 1 or len(cards) > 5:
+            raise ValueError("Hand must contain between 1 and 5 cards")
         
         # Pre-compute rank occurrences for helper use
         rank_counts = Counter([card.rank for card in cards])
@@ -74,7 +74,7 @@ class PokerEvaluator:
         # ------------------------------------------------------------------ #
         # 1)  Calculate **card chips** & accumulated bonuses (triggered)     #
         # ------------------------------------------------------------------ #
-        base_card_chips = sum(c._base_chip_value() for c in triggered_cards if blocked_suit is None or c.suit != blocked_suit)
+        base_card_chips = sum(c._base_chip_value() for c in cards if blocked_suit is None or c.suit != blocked_suit)
         bonus_chips     = 0
         bonus_multiplier = 0
         money_bonus     = 0
@@ -133,8 +133,13 @@ class PokerEvaluator:
         # Get scoring information
         score_info = cls.HAND_SCORES[hand_type]
         base_chips = score_info["base_chips"]
-        base_multiplier = score_info["multiplier"]
-        
+
+        # For hands with fewer than 5 cards, use the HIGH_CARD multiplier
+        if len(cards) < 5 and hand_type == HandType.HIGH_CARD:
+            base_multiplier = cls.HAND_SCORES[HandType.HIGH_CARD]["multiplier"]
+        else:
+            base_multiplier = score_info["multiplier"]
+            
         multiplier = base_multiplier + bonus_multiplier
         
         # Calculate total score: (card_chips + base_chips) * multiplier
@@ -171,7 +176,7 @@ class PokerEvaluator:
     @classmethod
     def _get_hand_type(cls, cards: List[Card]) -> HandType:
         """Determine the poker hand type"""
-        ranks = [card.rank for card in cards]
+        ranks = [card.rank for card in cards] 
         suits = [card.suit for card in cards]
         
         # Count ranks and suits
@@ -179,7 +184,11 @@ class PokerEvaluator:
         suit_counts = Counter(suits)
         
         # Check for flush
-        is_flush = len(suit_counts) == 1
+        is_flush = len(suit_counts) == 1 and len(cards) == 5
+        
+        # For hands with fewer than 5 cards, we can't have a flush or straight
+        if len(cards) < 5:
+            return cls._get_partial_hand_type(cards, rank_counts)
         
         # Check for straight
         is_straight = cls._is_straight(ranks)
@@ -201,6 +210,26 @@ class PokerEvaluator:
         
         if is_straight:
             return HandType.STRAIGHT
+        
+        # Check for three of a kind
+        if 3 in rank_counts.values():
+            return HandType.THREE_OF_A_KIND
+        
+        # Check for pairs
+        pair_count = sum(1 for count in rank_counts.values() if count == 2)
+        if pair_count == 2:
+            return HandType.TWO_PAIR
+        elif pair_count == 1:
+            return HandType.ONE_PAIR
+        
+        return HandType.HIGH_CARD
+    
+    @classmethod
+    def _get_partial_hand_type(cls, cards: List[Card], rank_counts: Counter) -> HandType:
+        """Determine the hand type for a partial hand (1-4 cards)"""
+        # Check for four of a kind (only possible with 4 cards)
+        if 4 in rank_counts.values():
+            return HandType.FOUR_OF_A_KIND
         
         # Check for three of a kind
         if 3 in rank_counts.values():
@@ -240,45 +269,48 @@ class PokerEvaluator:
         """Generate a human-readable description of the hand"""
         ranks = [card.rank for card in cards]
         rank_counts = Counter(ranks)
+
+        # For partial hands, add a note about the number of cards
+        card_count_note = "" if len(cards) == 5 else f" ({len(cards)} card{'s' if len(cards) > 1 else ''})"
         
         if hand_type == HandType.STRAIGHT_FLUSH:
             high_card = cls._get_straight_high_card(ranks)
-            return f"Straight Flush, {high_card} high"
+            return f"Straight Flush, {high_card} high{card_count_note}"
         
         elif hand_type == HandType.FOUR_OF_A_KIND:
             quad_rank = [rank for rank, count in rank_counts.items() if count == 4][0]
-            return f"Four of a Kind, {quad_rank}s"
+            return f"Four of a Kind, {quad_rank}s{card_count_note}"
         
         elif hand_type == HandType.FULL_HOUSE:
             trip_rank = [rank for rank, count in rank_counts.items() if count == 3][0]
             pair_rank = [rank for rank, count in rank_counts.items() if count == 2][0]
-            return f"Full House, {trip_rank}s over {pair_rank}s"
+            return f"Full House, {trip_rank}s over {pair_rank}s{card_count_note}"
         
         elif hand_type == HandType.FLUSH:
             suit = cards[0].suit
             high_card = max(ranks, key=lambda r: cls.RANK_VALUES[r])
-            return f"Flush, {high_card} high"
+            return f"Flush, {high_card} high{card_count_note}"
         
         elif hand_type == HandType.STRAIGHT:
             high_card = cls._get_straight_high_card(ranks)
-            return f"Straight, {high_card} high"
+            return f"Straight, {high_card} high{card_count_note}"
         
         elif hand_type == HandType.THREE_OF_A_KIND:
             trip_rank = [rank for rank, count in rank_counts.items() if count == 3][0]
-            return f"Three of a Kind, {trip_rank}s"
+            return f"Three of a Kind, {trip_rank}s{card_count_note}"
         
         elif hand_type == HandType.TWO_PAIR:
             pairs = [rank for rank, count in rank_counts.items() if count == 2]
             pairs.sort(key=lambda r: cls.RANK_VALUES[r], reverse=True)
-            return f"Two Pair, {pairs[0]}s and {pairs[1]}s"
+            return f"Two Pair, {pairs[0]}s and {pairs[1]}s{card_count_note}"
         
         elif hand_type == HandType.ONE_PAIR:
             pair_rank = [rank for rank, count in rank_counts.items() if count == 2][0]
-            return f"Pair of {pair_rank}s"
+            return f"Pair of {pair_rank}s{card_count_note}"
         
         else:  # HIGH_CARD
             high_card = max(ranks, key=lambda r: cls.RANK_VALUES[r])
-            return f"High Card, {high_card}"
+            return f"High Card, {high_card}{card_count_note}"
     
     @classmethod
     def _get_straight_high_card(cls, ranks: List[Rank]) -> Rank:

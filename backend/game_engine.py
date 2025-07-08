@@ -364,8 +364,8 @@ class GameSession:
             if self.money < 5:  # $1 per card, 5 cards total
                 raise ValueError(f"The Baron demands $5 to play your hand. You only have ${self.money}.")
         
-        if len(selected_indices) != 5:
-            raise ValueError("Must select exactly 5 cards to play")
+        if len(selected_indices) < 1 or len(selected_indices) > 5:
+            raise ValueError("Must select between 1 and 5 cards to play")
         
         logger.info(f"Session {self.session_id}: Hand before playing selected cards: {[str(c) for c in self.hand]}")
         # Validate indices
@@ -400,7 +400,7 @@ class GameSession:
         logger.info(f"Session {self.session_id}: Played cards added to discard pile: {[str(c) for c in played_cards_to_discard_pile]}")
 
         # Replenish the player's hand by drawing new cards to replace those that were played
-        num_cards_that_were_played = len(played_cards_to_discard_pile) # This will be 5
+        num_cards_that_were_played = len(played_cards_to_discard_pile) # This will be between 1 and 5
         
         # Determine how many new cards to draw
         actual_draw_count = min(num_cards_that_were_played, self.deck.remaining_count())

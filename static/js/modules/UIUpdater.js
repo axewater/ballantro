@@ -56,7 +56,7 @@ class UIUpdater {
             selectedCount === 0 || 
             gameState.draws_used >= gameState.max_draws;
             
-        this.elements.playHandBtn.disabled = selectedCount !== 5;
+        this.elements.playHandBtn.disabled = selectedCount < 1 || selectedCount > 5;
     }
 
     updateBossInfo(gameState) {
