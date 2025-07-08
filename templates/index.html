@@ -35,6 +35,21 @@
             opacity: 1;
             pointer-events: auto;
         }
+        /* Video intro styles */
+        #video-intro-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9998;
+            display: none;
+        }
+        #video-intro-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +68,14 @@
         </div>
 
         <div class="background">
+            <!-- Video Intro Container -->
+            <div id="video-intro-container">
+                <video id="intro-video" width="100%" height="100%" preload="auto">
+                    <source src="/static/assets/video/poker_game_intro.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            
             <canvas id="starfield"></canvas>
             <div class="bg-gradient"></div>
             <div class="bg-pattern"></div>
@@ -415,19 +438,37 @@
     <script src="/static/js/animations.js"></script>
     <script>
         // Handle splash screen with fade transition
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             const splashScreen = document.getElementById('splash-screen');
             const startupScreen = document.getElementById('startup-screen');
+            const videoContainer = document.getElementById('video-intro-container');
+            const introVideo = document.getElementById('intro-video');
 
-            splashScreen.addEventListener('click', () => {
-                // Add fade-out class to splash screen
-                splashScreen.classList.add('fade-out');
-                // After transition ends, hide splash and show startup screen with fade-in
-                splashScreen.addEventListener('transitionend', () => {
-                    splashScreen.classList.remove('active');
-                    startupScreen.classList.add('active');
-                    initializeGame();
-                }, { once: true });
+            // Function to skip video and go to main menu
+            function skipVideoAndShowMenu() {
+                introVideo.pause();
+                videoContainer.style.display = 'none';
+                startupScreen.classList.add('active');
+                initializeGame();
+            }
+
+            // Handle splash screen click
+            splashScreen.addEventListener('click', function() {
+                splashScreen.classList.remove('active');
+                
+                // Show and play the intro video
+                videoContainer.style.display = 'block';
+                introVideo.play().catch(err => {
+                    console.error('Error playing video:', err);
+                    skipVideoAndShowMenu(); // Fallback if video fails to play
+                });
+                
+                // Skip video when it ends
+                introVideo.addEventListener('ended', skipVideoAndShowMenu);
+                
+                // Skip video on click or key press
+                videoContainer.addEventListener('click', skipVideoAndShowMenu);
+                document.addEventListener('keydown', skipVideoAndShowMenu);
             });
         });
 
