@@ -49,7 +49,14 @@ document.addEventListener('DOMContentLoaded', function() {
             skipVideoAndShowMenu(); // Fallback if video fails to play
         });
         
-        // Skip video when it ends
+        // Show menu after 1 second while video continues playing in background
+        setTimeout(() => {
+            showMainMenuBackground();
+            startupScreen.classList.add('active');
+            initializeGame();
+        }, 1000);
+        
+        // Also skip video when it ends (as a fallback)
         introVideo.addEventListener('ended', skipVideoAndShowMenu);
         
         // Skip video on click or key press
