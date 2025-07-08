@@ -19,7 +19,7 @@ class ScoringAnimationManager{
         this.liveFinalTotalEl      = document.getElementById('live-final-total');
 
         /* misc */
-        this.animationDelayPerCard = 700; // ms
+        this.animationDelayPerCard = 200; // ms
         this.isAnimating = false;
         this.triggeredSet = new Set(); // indices of cards that actually score
     }
