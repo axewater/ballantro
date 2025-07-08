@@ -1,7 +1,9 @@
 from typing import List, Dict, Tuple, Optional, Any
 from collections import Counter, defaultdict
-from .models import Card, HandType, HandResult, Rank
+from .models import Card, HandType, HandResult, Rank, Suit
+import logging
 import random
+import inspect
 
 class PokerEvaluator:
     """Comprehensive poker hand evaluation with exact scoring"""
@@ -29,6 +31,9 @@ class PokerEvaluator:
     # Low Ace straight (A-2-3-4-5)
     LOW_ACE_STRAIGHT = [14, 2, 3, 4, 5]
     
+    # Boss effects tracking
+    _blocked_suits = {}  # session_id -> Suit
+    
     @classmethod
     def evaluate_hand(cls, cards: List[Card]) -> HandResult:
         """Evaluate a poker hand and return complete scoring information"""
@@ -40,6 +45,26 @@ class PokerEvaluator:
 
         # Determine hand type first
         hand_type = cls._get_hand_type(cards)
+        
+        # Get session ID from the monkey-patched _apply_turbo method
+        session_id = None
+        for frame in inspect.stack():
+            if '_apply_turbo' in frame.function:
+                # Extract session_id from the frame's arguments
+                if 'session_id' in frame.frame.f_locals:
+                    session_id = frame.frame.f_locals['session_id']
+                    break
+        
+        # Check for blocked suits from boss effects
+        blocked_suit = cls._blocked_suits.get(session_id)
+        
+        # Filter out cards with blocked suits for scoring
+        scoring_cards = cards
+        if blocked_suit:
+            scoring_cards = [card for card in cards if card.suit != blocked_suit]
+            if not scoring_cards:  # If all cards are blocked, use original cards but with zero value
+                scoring_cards = cards
+                logging.info(f"All cards blocked by boss effect. Using original cards with zero value.")
 
         # Figure out which concrete cards actually contribute to the
         # scored combination (see _get_triggered_indices docstring).
@@ -49,7 +74,7 @@ class PokerEvaluator:
         # ------------------------------------------------------------------ #
         # 1)  Calculate **card chips** & accumulated bonuses (triggered)     #
         # ------------------------------------------------------------------ #
-        base_card_chips = sum(c._base_chip_value() for c in triggered_cards)
+        base_card_chips = sum(c._base_chip_value() for c in triggered_cards if blocked_suit is None or c.suit != blocked_suit)
         bonus_chips     = 0
         bonus_multiplier = 0
         money_bonus     = 0
@@ -57,8 +82,9 @@ class PokerEvaluator:
         applied_bonuses_descriptions: List[str] = []
         for card in triggered_cards:
             # Static chip / mult bonuses
-            bonus_chips       += card.bonus_chips()
-            bonus_multiplier  += card.bonus_multiplier()
+            if blocked_suit is None or card.suit != blocked_suit:
+                bonus_chips += card.bonus_chips()
+                bonus_multiplier += card.bonus_multiplier()
 
             # --- dynamic / money effects --------------------------------- #
             for eff in card.effects:
@@ -90,14 +116,19 @@ class PokerEvaluator:
         # Collect applied bonus descriptions for static bonuses as well
         for card in triggered_cards:
             card_name_str = f"{card.rank.value} of {card.suit.value.capitalize()}" # e.g. "Ace of Spades"
-            if card.bonus_chips() > 0:
+            if card.bonus_chips() > 0 and (blocked_suit is None or card.suit != blocked_suit):
                 applied_bonuses_descriptions.append(
                     f"{card_name_str}: +{card.bonus_chips()} Bonus Chips"
                 )
-            if card.bonus_multiplier() > 0:
+            if card.bonus_multiplier() > 0 and (blocked_suit is None or card.suit != blocked_suit):
                 applied_bonuses_descriptions.append(
                     f"{card_name_str}: +{card.bonus_multiplier()} Bonus Multiplier"
                 )
+        
+        # Add boss effect description if applicable
+        if blocked_suit:
+            suit_name = blocked_suit.value.capitalize()
+            applied_bonuses_descriptions.append(f"Boss Effect: {suit_name} cards don't score")
         
         # Get scoring information
         score_info = cls.HAND_SCORES[hand_type]
@@ -123,6 +154,19 @@ class PokerEvaluator:
             applied_bonuses=applied_bonuses_descriptions,
             triggered_indices=triggered_indices,
         )
+    
+    @classmethod
+    def set_blocked_suit(cls, session_id: str, suit: Optional[Suit]):
+        """Set a blocked suit for a session (for boss effects)"""
+        if suit:
+            cls._blocked_suits[session_id] = suit
+        elif session_id in cls._blocked_suits:
+            del cls._blocked_suits[session_id]
+    
+    @classmethod
+    def clear_session(cls, session_id: str):
+        """Clear any session-specific data when a session ends"""
+        cls._blocked_suits.pop(session_id, None)
     
     @classmethod
     def _get_hand_type(cls, cards: List[Card]) -> HandType:

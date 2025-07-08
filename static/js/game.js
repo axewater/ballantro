@@ -16,6 +16,10 @@ class PokerGame {
         this.previewManager = new PreviewManager(this.apiClient, this.cardManager);
         this.scoringAnimationManager = new ScoringAnimationManager(this.previewManager, this.uiUpdater);
         this.soundManager = new SoundManager();
+        
+        // Connect sound manager to scoring animation manager
+        this.scoringAnimationManager.setSoundManager(this.soundManager);
+        
         // will hold the exact Card models the user played last
         this.lastPlayedCards = [];
         this.currentShopCards = []; // To store details of cards currently in the shop
@@ -224,7 +228,7 @@ class PokerGame {
         logClientHand("Hand BEFORE play hand request:", this.gameState.getHand());
         console.log("CLIENT: Selected card indices for play:", selIdx);
         // Capture **exact** Card objects the player sees, using visual indices
-        this.lastPlayedCardsData = selVisual.map(vIdx => // Renamed to avoid confusion with elements
+        this.lastPlayedCardsData = selVisual.map(vIdx => // Store the card data for turbo chip evaluation
             this.cardManager.getCardByVisualIndex(this.gameState.gameState, vIdx) // This gets card *data*
         );
 

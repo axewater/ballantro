@@ -2,7 +2,7 @@ class ScoringAnimationManager{
     constructor(previewManager, uiUpdater){
         this.previewManager = previewManager;
         this.uiUpdater     = uiUpdater;
-        this.soundManager = null;
+        this.soundManager = null; // Will be set by game.js
 
         /* Hand-preview panel elements (still used) */
         this.previewPanel          = document.getElementById('live-score-preview');
@@ -19,11 +19,19 @@ class ScoringAnimationManager{
         this.liveFinalTotalEl      = document.getElementById('live-final-total');
 
         /* misc */
-        this.animationDelayPerCard = 200; // ms
+        this.animationDelayPerCard = 69; // ms
         this.isAnimating = false;
+        this.triggeredSet = new Set(); // indices of cards that actually score
+        this._suitMultiplierBonuses = {}; // Track multiplier bonuses per suit
+        this.animationDelayPerCard = 800;
+        this._runningChips = 0;
+        this._runningMult = 0;
+        this._turboMultBonus = 0;  // NEW: Track turbo chip multiplier bonuses
+
         this.triggeredSet = new Set(); // indices of cards that actually score
     }
 
+    /* Set the sound manager reference */
     setSoundManager(soundManager) {
         this.soundManager = soundManager;
     }
@@ -151,17 +159,19 @@ class ScoringAnimationManager{
            For simplicity we’ll just start at (handResult.multiplier - sumCardBonusMult),
            but if that’s tricky we simply use handResult.multiplier and add bonuses (dup harmless). */
         this._baseMultiplier = handResult.multiplier;
-        this.liveMultTotalEl.textContent = this._baseMultiplier;
+        this._runningMult = this._baseMultiplier;
+        this.liveMultTotalEl.textContent = this._runningMult;
         this.liveFinalTotalEl.textContent='0';
 
+        this._suitMultiplierBonuses = {}; // Reset suit multiplier tracking
         // Card elements are now assumed to be in this.cardRow, moved by _animateCardsToScoringArea
         // We just need to ensure they have the 'default' cursor if not already set.
         Array.from(this.cardRow.children).forEach(el => el.style.cursor = 'default');
 
         /* internal running totals */
         this._runningChips = handResult.base_chips;
-        this._runningMult  = this._baseMultiplier;
         this._finalTarget  = handResult.total_score; // already turbo chips etc. – used for final count-up
+        this._turboMultBonus = 0; // Reset turbo multiplier bonus for this scoring run
     }
 
     async _processCardsSequentially(cards){
@@ -198,6 +208,7 @@ class ScoringAnimationManager{
             cardEl.style.transform='scale(1)';
 
             if(isTriggered){
+                const suit = card.suit; // Get the card's suit for tracking
                 /* ▶ CHIP VALUE FLOAT */
                 const base = this._getBaseChipValueForCard(card);
                 if (this.soundManager && base > 0) {
@@ -206,6 +217,12 @@ class ScoringAnimationManager{
                 await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
                 this._runningChips += base;
                 this.liveChipTotalEl.textContent = this._runningChips;
+
+                // Track suit for multiplier bonuses
+                if (!this._suitMultiplierBonuses[suit]) {
+                    this._suitMultiplierBonuses[suit] = 0;
+                }
+                this._suitMultiplierBonuses[suit]++;
 
                 /* ▶ SPECIAL EFFECTS */
                 const bonusChips = this._getCardBonusChips(card);
@@ -232,9 +249,47 @@ class ScoringAnimationManager{
     }
 
     async _applyInventoryEffects(){
+        /* TURBO CHIP FLASHES */
         const invEls=document.querySelectorAll('.turbo-chip');
         for(const chipEl of invEls){
+            // Check if this is a suit-specific multiplier chip
+            const tooltipText = chipEl.dataset.tooltipText || '';
+            let suitMatch = null;
+            
+            // Determine which suit this chip applies to
+            if (tooltipText.includes('+3 multiplier')) {
+                if (tooltipText.includes('spade')) suitMatch = 'spades';
+                else if (tooltipText.includes('heart')) suitMatch = 'hearts';
+                else if (tooltipText.includes('club')) suitMatch = 'clubs';
+                else if (tooltipText.includes('diamond')) suitMatch = 'diamonds';
+            }
+            
+            // If it's a suit multiplier and we have cards of that suit
+            if (suitMatch && this._suitMultiplierBonuses[suitMatch] > 0) {
+                // Apply +3 for EACH card of this suit that was scored
+                const cardsOfSuit = this._suitMultiplierBonuses[suitMatch];
+                const bonusToAdd = 3 * cardsOfSuit;
+                
+                // Create a connecting line from chip to each card of this suit
+                const triggeredCards = Array.from(this.cardRow.children)
+                    .filter((_, idx) => this.triggeredSet.has(idx) && 
+                                      window.pokerGame?.lastPlayedCardsData[idx]?.suit === suitMatch);
+                
+                // Animate the connection for each card
+                for (const cardEl of triggeredCards) {
+                    this._animateConnection(chipEl, cardEl);
+                    await this._delay(100);
+                }
+                
+                // Add the multiplier bonus with animation
+                await this._spawnFloatingNum(chipEl, `+${bonusToAdd}`, 'red', this.liveMultTotalEl);
+                this._turboMultBonus += bonusToAdd;
+                this._runningMult += bonusToAdd;
+                this.liveMultTotalEl.textContent = this._runningMult;
+                if (this.soundManager) this.soundManager.playMultiplierSound();
+            }
             chipEl.classList.add('flash');
+            
             // Play turbo chip sound for each flashing chip
             if (this.soundManager) {
                 this.soundManager.playTurboChipSound();
@@ -245,6 +300,50 @@ class ScoringAnimationManager{
         /* inventory effects are already included by backend in total_score;
            we just add a small pause so flash is visible. */
         await this._delay(400);
+    }
+
+    // Create a visual connection between a turbo chip and a card
+    _animateConnection(chipEl, cardEl) {
+        // Create a connecting line element
+        const line = document.createElement('div');
+        line.className = 'turbo-connection';
+        document.body.appendChild(line);
+        
+        // Get positions
+        const chipRect = chipEl.getBoundingClientRect();
+        const cardRect = cardEl.getBoundingClientRect();
+        
+        // Calculate start and end points
+        const startX = chipRect.left + chipRect.width / 2;
+        const startY = chipRect.top + chipRect.height / 2;
+        const endX = cardRect.left + cardRect.width / 2;
+        const endY = cardRect.top + cardRect.height / 2;
+        
+        // Calculate angle and length
+        const angle = Math.atan2(endY - startY, endX - startX);
+        const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+        
+        // Position and style the line
+        line.style.position = 'fixed';
+        line.style.left = `${startX}px`;
+        line.style.top = `${startY}px`;
+        line.style.width = `${length}px`;
+        line.style.height = '3px';
+        line.style.backgroundColor = '#f093fb'; // Bright color for visibility
+        line.style.transform = `rotate(${angle}rad)`;
+        line.style.transformOrigin = '0 0';
+        line.style.zIndex = '2000';
+        line.style.opacity = '0.8';
+        
+        // Animate and remove
+        setTimeout(() => {
+            line.style.transition = 'opacity 0.5s ease';
+            line.style.opacity = '0';
+        }, 300);
+        
+        setTimeout(() => {
+            document.body.removeChild(line);
+        }, 800);
     }
 
     async _finaliseScore(){

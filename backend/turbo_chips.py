@@ -67,6 +67,10 @@ def _make_suit_multiplier_chip(name: str, effect_id: str, suit_str: str):
                 # Re-compute total with (+3) multiplier
                 if res.multiplier == 0:          # safeguard
                     return total
+                
+                # Update the multiplier in the HandResult to reflect the +3 bonus
+                res.multiplier += 3
+                
                 base_total = total // res.multiplier
                 return base_total * (res.multiplier + 3)
         return total

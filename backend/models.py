@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-from enum import Enum
+from typing import List, Optional, Dict, Any, Union
+from enum import Enum, auto
 from .turbo_chips import TurboChip
 
 class Suit(str, Enum):
@@ -93,6 +93,39 @@ class HandResult(BaseModel):
     # chip / multiplier bonuses for this hand.
     triggered_indices: List[int] = []
 
+class BossType(str, Enum):
+    THIEF = "thief"           # every time you click draw or play, he steals 1 card
+    VAMPIRE = "vampire"       # heart cards don't score
+    VIP_ONLY = "vip_only"     # club cards don't score
+    FROZEN_GROUND = "frozen_ground"  # spade cards don't score
+    BLONDE_VIXEN = "blonde_vixen"    # diamond cards don't score
+    DRUNK = "drunk"           # 25% less scoring
+    BARON = "baron"           # costs $1 for each card played
+    DEATH = "death"           # hand size reduced by 2
+
+class Boss(BaseModel):
+    """Represents a boss that appears in boss rounds"""
+    type: BossType
+    name: str
+    description: str
+    
+    @classmethod
+    def get_random_boss(cls) -> 'Boss':
+        """Return a random boss from the available bosses"""
+        import random
+        boss_types = {
+            BossType.THIEF: {"name": "The Thief", "description": "Every time you click draw or play, he steals 1 card (it disappears)"},
+            BossType.VAMPIRE: {"name": "The Vampire", "description": "Heart cards don't score"},
+            BossType.VIP_ONLY: {"name": "VIP Only", "description": "Club cards don't score"},
+            BossType.FROZEN_GROUND: {"name": "Frozen Ground", "description": "Spade cards don't score"},
+            BossType.BLONDE_VIXEN: {"name": "Blonde Vixen", "description": "Diamond cards don't score"},
+            BossType.DRUNK: {"name": "The Drunk", "description": "25% less scoring"},
+            BossType.BARON: {"name": "The Baron", "description": "Costs $1 for each card played (scored)"},
+            BossType.DEATH: {"name": "Death", "description": "Your hand size is reduced by 2"}
+        }
+        boss_type = random.choice(list(boss_types.keys()))
+        return cls(type=boss_type, **boss_types[boss_type])
+
 class GameState(BaseModel):
     session_id: str
     current_round: int
@@ -113,6 +146,10 @@ class GameState(BaseModel):
     # active turbo chips (max 8)
     inventory: list[TurboChip] = []
     is_debug_mode: bool = False
+    current_leg: int = 1
+    total_legs: int = 10
+    is_boss_round: bool = False
+    active_boss: Optional[Boss] = None
 
 class GameAction(BaseModel):
     session_id: str

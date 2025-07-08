@@ -9,6 +9,8 @@ class UIUpdater {
             handsPlayed: document.getElementById('hands-played'),
             maxHands: document.getElementById('max-hands'),
             drawsUsed: document.getElementById('draws-used'),
+            currentLeg: document.getElementById('current-leg'),
+            bossInfo: document.getElementById('boss-info'),
             shopMoneyDisplay: document.getElementById('shop-money-display'),
             maxDraws: document.getElementById('max-draws'),
 
@@ -30,6 +32,7 @@ class UIUpdater {
         this.elements.totalScore.textContent = gameState.total_score;
         this.elements.playerMoney.textContent = `$${gameState.money}`;
         this.elements.roundTarget.textContent = gameState.round_target;
+        this.elements.currentLeg.textContent = gameState.current_leg;
         if (this.elements.shopMoneyDisplay) this.elements.shopMoneyDisplay.textContent = `$${gameState.money}`;
         this.elements.handsPlayed.textContent = gameState.hands_played;
         this.elements.maxHands.textContent = gameState.max_hands;
@@ -41,6 +44,8 @@ class UIUpdater {
         this.updateButtonStates(gameState, selectedCount);
         
         // Update selection count
+        this.updateBossInfo(gameState);
+        
         this.elements.selectionCount.textContent = selectedCount;
         // inventory
         this.updateInventory(gameState.inventory || []);
@@ -52,6 +57,24 @@ class UIUpdater {
             gameState.draws_used >= gameState.max_draws;
             
         this.elements.playHandBtn.disabled = selectedCount !== 5;
+    }
+
+    updateBossInfo(gameState) {
+        if (!this.elements.bossInfo) return;
+        
+        if (gameState.is_boss_round && gameState.active_boss) {
+            const boss = gameState.active_boss;
+            this.elements.bossInfo.innerHTML = `
+                <div class="boss-alert">
+                    <h3>BOSS ROUND: ${boss.name}</h3>
+                    <p>${boss.description}</p>
+                </div>
+            `;
+            this.elements.bossInfo.style.display = 'block';
+        } else {
+            this.elements.bossInfo.innerHTML = '';
+            this.elements.bossInfo.style.display = 'none';
+        }
     }
 
     displayHand(hand, selectedCards, cardManager, onCardClick) {

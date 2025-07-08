@@ -109,11 +109,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add cooldown for card hover sound to prevent rapid-fire sound effect
     let lastHoverSoundTime = 0;
     const hoverSoundCooldown = 100; // milliseconds
-
+    
     // Assuming SoundManager is globally accessible and has a playHoverSound method
     // Also assuming cards have a class 'card' and hover sound is triggered on mouseenter
     document.addEventListener('mouseenter', function(event) {
-        if (event.target.classList.contains('card')) {
+        // Add null check for event.target and classList
+        const target = event.target;
+        
+        // Guard against undefined target or missing classList property
+        if (!target || !target.classList) {
+            return;
+        }
+        
+        if (target.classList.contains('card')) {
             const now = Date.now();
             if (now - lastHoverSoundTime > hoverSoundCooldown) {
                 if (window.SoundManager && typeof window.SoundManager.playHoverSound === 'function') {

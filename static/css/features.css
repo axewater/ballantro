@@ -287,3 +287,19 @@
     50%{box-shadow:0 0 12px rgba(0,229,255,.8);}
 }
 .turbo-chip.flash{animation:invFlash .6s ease 2;}
+
+/* Multiplier increase animation */
+.mult-total.pulse {
+    animation: multiplierPulse 0.5s ease-out;
+}
+
+/* Turbo chip activation animation */
+.turbo-chip.activate {
+    animation: turboActivate 0.8s ease-out;
+}
+
+/* Floating number animations for scoring */
+.floating-num {
+    position: fixed;
+    opacity: 0;
+}

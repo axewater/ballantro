@@ -2,7 +2,7 @@ import uuid
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 from .models import GameState, Card, HandResult, HighScore, Suit, Rank
 from .deck import Deck
 from .poker_evaluator import PokerEvaluator #PokerEvaluator
@@ -22,6 +22,7 @@ _SESSION_INVENTORIES: dict[str, list[TurboChip]] = {}
 def _inject_turbo(session_id: str, res: "HandResult", played_cards: list["Card"] | None = None):
     inv = _SESSION_INVENTORIES.get(session_id, [])
     total = res.total_score
+    original_multiplier = res.multiplier
     applied = list(res.applied_bonuses)
     for chip in inv:
         # Try extended signature first (for new chips); fall back to legacy.
@@ -205,6 +206,7 @@ class GameSession:
     
     # Round progression requirements
     ROUND_TARGETS = {1: 300, 2: 750, 3: 1250}
+    ROUNDS_PER_LEG = 3
     
     def __init__(self, session_id: str, is_debug_mode: bool = False):
         self.session_id = session_id
@@ -218,6 +220,10 @@ class GameSession:
         self.hand: List[Card] = []
         self.is_game_over = False
         self.is_victory = False
+        self.current_leg = 1
+        self.total_legs = 10
+        self.is_boss_round = False
+        self.active_boss = None
 
         # Shop state
         self.in_shop = False
@@ -236,6 +242,10 @@ class GameSession:
         self.max_hands = 4
         self.max_hand_size = 8
         self.max_draws = 3
+
+        # Boss effects tracking
+        self.cards_stolen_this_round = 0
+        self.baron_fee_paid = False
         
         if self.is_debug_mode:
             logger.info(f"Session {self.session_id}: Initializing in DEBUG MODE.")
@@ -286,6 +296,10 @@ class GameSession:
             max_draws=self.max_draws,
             is_game_over=self.is_game_over,
             is_victory=self.is_victory,
+            current_leg=self.current_leg,
+            total_legs=self.total_legs,
+            is_boss_round=self.is_boss_round,
+            active_boss=self.active_boss,
             inventory=self.inventory.copy(),
             is_debug_mode=self.is_debug_mode,
         )
@@ -297,6 +311,11 @@ class GameSession:
         
         if self.draws_used >= self.max_draws:
             raise ValueError("No draws remaining")
+        
+        # Apply boss effects before drawing
+        if self.is_boss_round and self.active_boss and self.active_boss.type == "thief":
+            self._apply_thief_effect()
+            self.cards_stolen_this_round += 1
         
         if len(selected_indices) == 0:
             raise ValueError("Must select at least one card to discard")
@@ -334,6 +353,11 @@ class GameSession:
         """Play the selected cards and calculate score"""
         if self.is_game_over:
             raise ValueError("Game is over")
+        
+        # Apply boss effects before playing
+        if self.is_boss_round and self.active_boss and self.active_boss.type == "baron" and not self.baron_fee_paid:
+            if self.money < 5:  # $1 per card, 5 cards total
+                raise ValueError(f"The Baron demands $5 to play your hand. You only have ${self.money}.")
         
         if len(selected_indices) != 5:
             raise ValueError("Must select exactly 5 cards to play")
@@ -385,12 +409,25 @@ class GameSession:
 
         # Provide inventory to turbo hook, then compute base score and apply any turbo chips
         _SESSION_INVENTORIES[self.session_id] = self.inventory
+        
+        # Apply boss effects to the played cards if needed
+        if self.is_boss_round and self.active_boss:
+            played_cards_for_eval = self._apply_boss_effects_to_cards(played_cards_for_eval)
+            
+            # Pay the Baron's fee if applicable
+            if self.active_boss.type == "baron" and not self.baron_fee_paid:
+                self.money -= 5  # $1 per card, 5 cards total
+                self.baron_fee_paid = True
+
         # 1) Evaluate base hand
         raw_result = PokerEvaluator.evaluate_hand(played_cards_for_eval)
         # 2) Apply any active turbo‐chips (monkey-patched hook).  We now pass
         #    `played_cards_for_eval` as an extra argument so suit-specific
         #    chips can inspect which cards actually scored.
         hand_result = PokerEvaluator._apply_turbo(self.session_id, raw_result, played_cards_for_eval)
+
+        # Apply boss effects to scoring
+        hand_result = self._apply_boss_effects_to_scoring(hand_result, played_cards_for_eval)
 
         # Update score (already turbo-adjusted)
         self.total_score += hand_result.total_score
@@ -416,11 +453,14 @@ class GameSession:
             logger.info(f"Session {self.session_id}: Round {self.current_round} complete. Money awarded: ${money_awarded_this_round}. Total money: ${self.money}")
             self.in_shop = True
 
-            if self.current_round >= 3 and not self.is_debug_mode: # Victory only if not debug
+            # Check for victory (completed all legs)
+            if self.current_leg >= self.total_legs and not self.is_debug_mode:
                 # Victory!
                 self.is_victory = True
                 self.is_game_over = True
             else:
+                # Check if next round is a boss round
+                self._check_for_boss_round()
                 # Instead of immediately advancing to next round, we enter shop mode
                 # The actual round advancement happens in proceed_to_next_round
                 logger.info(f"Session {self.session_id}: Entering shop for round {self.current_round + 1}. Hand carried over: {[str(c) for c in self.hand]}")
@@ -522,7 +562,7 @@ class GameSession:
     
     def _deal_initial_hand(self):
         """Deal initial hand of cards"""
-        self.hand = self.deck.draw(self.max_hand_size)
+        self.hand = self.deck.draw(self._get_effective_max_hand_size())
     
     def get_remaining_deck_cards(self) -> List[Card]:
         """Returns a copy of the cards currently in the deck."""
@@ -533,6 +573,23 @@ class GameSession:
         """Proceed to the next round after shopping"""
         if not self.in_shop:
             raise ValueError("Not currently in shop phase")
+        
+        # Set up boss effects for the next round if it's a boss round
+        if self.is_boss_round and self.active_boss:
+            boss_type = self.active_boss.type
+            blocked_suits = {
+                "vampire": Suit.HEARTS, "vip_only": Suit.CLUBS,
+                "frozen_ground": Suit.SPADES, "blonde_vixen": Suit.DIAMONDS
+            }
+            PokerEvaluator.set_blocked_suit(self.session_id, blocked_suits.get(boss_type))
+        
+        # Reset boss-related state for the new round
+        self.cards_stolen_this_round = 0
+        self.baron_fee_paid = False
+        
+        # Update leg counter if needed
+        if self.current_round % self.ROUNDS_PER_LEG == 0:
+            self.current_leg += 1
         
         logger.info(f"Session {self.session_id}: Proceeding to Round {self.current_round + 1}. Current hand: {[str(c) for c in self.hand]}. Purchased cards accumulated: {[str(c) for c in self.purchased_cards]}")
         
@@ -590,6 +647,76 @@ class GameSession:
         return {
             "game_state": self.get_state().dict()
         }
+
+    def _apply_thief_effect(self):
+        """The Thief steals a random card from the deck"""
+        if self.deck.remaining_count() > 0:
+            stolen_card = self.deck.cards.pop()
+            logger.info(f"Session {self.session_id}: The Thief stole a card: {stolen_card}")
+    
+    def _apply_boss_effects_to_cards(self, cards: List[Card]) -> List[Card]:
+        """Apply boss effects to the played cards"""
+        if not self.is_boss_round or not self.active_boss:
+            return cards
+        
+        boss_type = self.active_boss.type
+        
+        # For suit-blocking bosses, we'll return the cards but they'll be handled in the evaluator
+        if boss_type in ["vampire", "vip_only", "frozen_ground", "blonde_vixen"]:
+            return cards
+        
+        # For The Drunk, we'll handle the scoring reduction in the evaluator
+        if boss_type == "drunk":
+            return cards
+        
+        # For other bosses, we don't modify the cards directly
+        return cards
+    
+    def _check_for_boss_round(self):
+        """Check if the next round is a boss round and set up accordingly"""
+        next_round = self.current_round + 1
+        
+        # Every 3rd round is a boss round (3, 6, 9, 12, 15, 18, 21, 24, 27, 30)
+        if next_round % self.ROUNDS_PER_LEG == 0:
+            from .models import Boss
+            self.is_boss_round = True
+            self.active_boss = Boss.get_random_boss()
+            logger.info(f"Session {self.session_id}: Next round will be a boss round with {self.active_boss.name}")
+        else:
+            self.is_boss_round = False
+            self.active_boss = None
+    
+    def _get_effective_max_hand_size(self) -> int:
+        """Get the effective maximum hand size, accounting for boss effects"""
+        if self.is_boss_round and self.active_boss and self.active_boss.type == "death":
+            return max(3, self.max_hand_size - 2)  # Ensure at least 3 cards in hand
+        return self.max_hand_size
+    
+    def _apply_boss_effects_to_scoring(self, hand_result: HandResult, played_cards: List[Card]) -> HandResult:
+        """Apply boss effects to the scoring"""
+        if not self.is_boss_round or not self.active_boss:
+            return hand_result
+        
+        boss_type = self.active_boss.type
+        
+        # The Drunk reduces scoring by 25%
+        if boss_type == "drunk":
+            hand_result.total_score = int(hand_result.total_score * 0.75)
+            hand_result.applied_bonuses.append("The Drunk reduced scoring by 25%")
+        
+        # Suit-blocking bosses
+        blocked_suits = {
+            "vampire": Suit.HEARTS,
+            "vip_only": Suit.CLUBS,
+            "frozen_ground": Suit.SPADES,
+            "blonde_vixen": Suit.DIAMONDS
+        }
+        
+        if boss_type in blocked_suits:
+            # This is now handled in the poker evaluator
+            pass
+        
+        return hand_result
 
 # Create a global instance of the game engine
 game_engine = GameEngine()
