@@ -35,13 +35,9 @@ class PokerGame {
             so rapidly moving over many cards will retrigger the SFX cleanly. */
         window.cardHoverSound      = this.cardHoverSound;
         window.playCardHoverSound  = () => { const s = window.cardHoverSound; if(s){ s.pause(); s.currentTime = 0; s.play().catch(()=>{});} };
-        /* universal UI button click */
-        this.buttonClickSound = new Audio('/static/assets/sound/button_click.mp3');
         /* expose globally so other modules can play them without tight coupling */
         window.cardClickSound  = this.cardClickSound;
         window.scoreMultSound  = this.scoreMultSound;
-        /* expose button click for modules if needed */
-        window.buttonClickSound = this.buttonClickSound;
 
         // Initialize event listeners and show startup screen
         this.initializeEventListeners();
@@ -603,6 +599,11 @@ class PokerGame {
             const data = await this.apiClient.rerollShop(this.gameState.sessionId);
             
             if (data.success) {
+                // Play reroll sound
+                if (this.soundManager) {
+                    this.soundManager.playRerollSound();
+                }
+
                 // Update shop display with new cards
                 this.updateShopDisplay({
                     shop_items: data.shop_items,
@@ -734,9 +735,9 @@ class PokerGame {
     /*  Helper – universal button-click sound for main action buttons */
     /* ------------------------------------------------------------- */
     _playButtonSound() {
-        if (this.buttonClickSound) {
-            this.buttonClickSound.currentTime = 0;
-            this.buttonClickSound.play().catch(() => {});
+        // Use the Web Audio API for a generated click sound
+        if (this.soundManager) {
+            this.soundManager.playButtonClickSound();
         }
     }
 }

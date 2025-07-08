@@ -159,6 +159,83 @@ class SoundManager {
         if (!targetScore || targetScore <= 0) return 0;
         return Math.min(Math.max(currentScore / targetScore, 0), 1);
     }
+
+    /**
+     * Play a short, crisp UI button click sound.
+     */
+    playButtonClickSound() {
+        if (!this.isInitialized) return;
+
+        try {
+            // Use a very short buffer of white noise for the click
+            const bufferSize = this.audioContext.sampleRate * 0.05; // 50ms duration
+            const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const output = buffer.getChannelData(0);
+
+            // Fill buffer with random values (white noise)
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            const source = this.audioContext.createBufferSource();
+            source.buffer = buffer;
+
+            // Create a sharp volume envelope to make it sound like a "click"
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+
+            source.connect(gainNode);
+            gainNode.connect(this.masterGain);
+            source.start(0);
+        } catch (error) {
+            console.warn('SoundManager: Error playing button click sound:', error);
+        }
+    }
+
+    /**
+     * Play a dice rolling sound for the shop reroll.
+     * This is done by playing a rapid succession of ticks that fall in pitch.
+     */
+    playRerollSound() {
+        if (!this.isInitialized) return;
+
+        try {
+            const now = this.audioContext.currentTime;
+            const tickCount = 5;
+            let totalDuration = 0;
+
+            for (let i = 0; i < tickCount; i++) {
+                const startTime = now + totalDuration;
+                const duration = 0.05 + Math.random() * 0.03;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.masterGain);
+                
+                // Pitch decreases with each "tumble"
+                const pitch = 800 - (60 * i * i);
+                oscillator.frequency.setValueAtTime(pitch + Math.random() * 50, startTime);
+                oscillator.type = 'square';
+                
+                // Volume also decreases
+                const volume = 0.3 * (1 - i / tickCount);
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + duration);
+
+                // Stagger start times to simulate tumbling
+                totalDuration += 0.04 + Math.random() * 0.06;
+            }
+        } catch (error) {
+            console.warn('SoundManager: Error playing reroll sound:', error);
+        }
+    }
 }
 
 // Export for use in other modules
