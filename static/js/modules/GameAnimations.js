@@ -10,5 +10,8 @@ window.gameAnimations = {
     },
     animateCardDeal:   async ()=>{},   // existing no-ops kept
     animateRoundTransition:async ()=>{},
-    animateCardSelection:(el,sel)=>{}
+    animateCardSelection(cardElement, isSelected) {
+        // Selection state is now handled purely by CSS classes
+        // No additional animation needed since CSS handles the transition
+    }
 };

@@ -10,13 +10,6 @@
     50% { transform: scale(1.1); opacity: 0.8; }
 }
 
-/* Card selection animation */
-@keyframes cardSelected {
-    0% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-20px) scale(1.15); }
-    100% { transform: translateY(-15px) scale(1.1); }
-}
-
 /* Scoring screen card reveal animation */
 @keyframes cardReveal {
     to {
