@@ -91,7 +91,22 @@ class PokerGame {
         document.getElementById('try-again-btn').addEventListener('click', () => this.startNewGame());
 
         // Highscores screen
-        document.getElementById('back-to-menu-btn').addEventListener('click', () => this.screenManager.showScreen('startup'));
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+            this.screenManager.showScreen('startup');
+            // When returning to main menu, set mainbackdrop.jpg background and hide starfield with fade
+            const background = document.querySelector('.background');
+            if (background) {
+                background.style.transition = 'background-image 0.5s ease';
+                background.style.backgroundImage = "url('/static/assets/images/mainbackdrop.jpg')";
+                background.style.backgroundSize = "cover";
+                background.style.backgroundPosition = "center";
+            }
+            const starfield = document.getElementById('starfield');
+            if (starfield) {
+                starfield.style.transition = 'opacity 0.5s ease';
+                starfield.style.opacity = "0";
+            }
+        });
 
         // Name modal
         document.getElementById('save-name-btn').addEventListener('click', () => this.saveVictoryScore());
@@ -135,6 +150,20 @@ class PokerGame {
                 this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType); // Update button visuals
                 this.uiUpdater.updateDebugModeIndicator(this.gameState.isDebugging());
                 logClientHand("Initial hand dealt:", this.gameState.getHand());
+               
+               // Switch back to starfield background for gameplay with fade
+               const background = document.querySelector('.background');
+               if (background) {
+                   background.style.transition = 'background-image 0.5s ease';
+                   background.style.backgroundImage = ""; // Remove the menu background image
+               }
+               
+               // Make sure starfield is visible with fade
+               const starfield = document.getElementById('starfield');
+               if (starfield) {
+                   starfield.style.transition = 'opacity 0.5s ease';
+                   starfield.style.opacity = "1";
+               }
 
                 this.animateCardDraw();
             } else {
