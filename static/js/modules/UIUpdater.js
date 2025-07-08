@@ -81,6 +81,7 @@ class UIUpdater {
         this.elements.playerHand.innerHTML = '';
         // Using the global logClientHand or a specific one for UIUpdater if preferred
         logClientHand("UI_UPDATER: Displaying hand. Received hand:", hand);
+        console.log("DEBUG: Setting up card click handlers for", hand.length, "cards");
         
         hand.forEach((card, index) => {
             const cardElement = cardManager.createCardElement(card, selectedCards.has(index));
@@ -89,6 +90,7 @@ class UIUpdater {
                 After a sort _applySortAnimation updates dataset.index, so this
                 handler will automatically pass the new, correct visual index. */
             cardElement.addEventListener('click', () => {
+                console.log("DEBUG: Card clicked, index:", cardElement.dataset.index);
                 const currentIndex = parseInt(cardElement.dataset.index, 10);
                 onCardClick(currentIndex, cardElement);
             });

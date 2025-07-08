@@ -80,6 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
         showGameBackground();
     });
 
+    // Also intercept debug boss button
+    document.getElementById('debug-boss-btn').addEventListener('click', function() {
+        showGameBackground();
+    });
+
     // Listen for events to return to main menu (victory, game over, back to menu)
     // Assuming buttons with these IDs exist and are used to return to menu
     const backToMenuBtn = document.getElementById('back-to-menu-btn');

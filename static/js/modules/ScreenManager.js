@@ -12,6 +12,7 @@ class ScreenManager {
         
         this.previousScreen = this.currentScreen;
         // Show the requested screen
+        if (screenName === 'boss-selection') screenName = 'boss-selection';
         document.getElementById(`${screenName}-screen`).classList.add('active');
         this.currentScreen = screenName;
     }

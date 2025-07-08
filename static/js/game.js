@@ -54,6 +54,7 @@ class PokerGame {
         // Startup screen
         document.getElementById('start-game-btn').addEventListener('click', () => this.startNewGame(false));
         document.getElementById('start-debug-game-btn').addEventListener('click', () => this.startNewGame(true));
+        document.getElementById('debug-boss-btn').addEventListener('click', () => this.showBossSelection());
         document.getElementById('highscores-btn').addEventListener('click', () => this.showHighscores());
 
         // Game screen
@@ -79,6 +80,9 @@ class PokerGame {
         // Highscores screen
         document.getElementById('back-to-menu-btn').addEventListener('click', () => {
             this.screenManager.showScreen('startup');
+        });
+        
+        document.getElementById('back-from-boss-selection-btn').addEventListener('click', () => {
             // When returning to main menu, set mainbackdrop.jpg background and hide starfield with fade
             const background = document.querySelector('.background');
             if (background) {
@@ -92,6 +96,7 @@ class PokerGame {
                 starfield.style.transition = 'opacity 0.5s ease';
                 starfield.style.opacity = "0";
             }
+            this.screenManager.showScreen('startup');
         });
 
         // Name modal
@@ -111,6 +116,150 @@ class PokerGame {
         document.getElementById('modal-player-name').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.saveVictoryScore();
         });
+    }
+
+    showBossSelection() {
+        // Initialize sound manager on first user interaction
+        this.soundManager.initialize();
+        
+        // Define all available bosses with their details
+        const bosses = [
+            {
+                type: "thief",
+                name: "The Thief",
+                emoji: "🥷",
+                description: "Every time you click draw or play, he steals 1 card from your deck (it disappears forever)."
+            },
+            {
+                type: "vampire",
+                name: "The Vampire",
+                emoji: "🧛",
+                description: "Heart cards don't score any points. Your romantic cards are powerless against this creature of the night."
+            },
+            {
+                type: "vip_only",
+                name: "VIP Only",
+                emoji: "🎩",
+                description: "Club cards don't score any points. This exclusive establishment doesn't recognize your club membership."
+            },
+            {
+                type: "frozen_ground",
+                name: "Frozen Ground",
+                emoji: "❄️",
+                description: "Spade cards don't score any points. The frozen earth makes digging impossible."
+            },
+            {
+                type: "blonde_vixen",
+                name: "Blonde Vixen",
+                emoji: "💎",
+                description: "Diamond cards don't score any points. She's already taken all the diamonds for herself."
+            },
+            {
+                type: "drunk",
+                name: "The Drunk",
+                emoji: "🍺",
+                description: "All scoring is reduced by 25%. His intoxication affects your concentration and performance."
+            },
+            {
+                type: "baron",
+                name: "The Baron",
+                emoji: "👑",
+                description: "Costs $5 to play any hand. This greedy noble demands payment for every action you take."
+            },
+            {
+                type: "death",
+                name: "Death",
+                emoji: "💀",
+                description: "Your hand size is reduced by 2 cards. The grim reaper limits your options in life and cards."
+            }
+        ];
+        
+        // Populate the boss list
+        const bossListContainer = document.getElementById('boss-list');
+        bossListContainer.innerHTML = '';
+        
+        bosses.forEach(boss => {
+            const bossCard = document.createElement('div');
+            bossCard.className = 'boss-card';
+            bossCard.innerHTML = `
+                <div class="boss-card-header">
+                    <div class="boss-emoji">${boss.emoji}</div>
+                    <h3 class="boss-name">${boss.name}</h3>
+                </div>
+                <p class="boss-description">${boss.description}</p>
+            `;
+            
+            // Add click handler to start boss fight
+            bossCard.addEventListener('click', () => {
+                this.startBossFight(boss);
+            });
+            
+            bossListContainer.appendChild(bossCard);
+        });
+        
+        // Show the boss selection screen
+        this.screenManager.showScreen('boss-selection');
+    }
+
+    async startBossFight(selectedBoss) {
+        try {
+            // Clear any existing selection state before starting boss fight
+            this.cardManager.clearSelection();
+            
+            // Start a new debug game
+            const data = await this.apiClient.newGame(true); // Debug mode
+            if (data.success) {
+                console.log("CLIENT: New boss fight started. Initial game state received:", data.game_state);
+                this.gameState.setGameState(data.game_state);
+                
+                // Force the game into boss round mode with the selected boss
+                this.gameState.gameState.is_boss_round = true;
+                this.gameState.gameState.active_boss = {
+                    type: selectedBoss.type,
+                    name: selectedBoss.name,
+                    description: selectedBoss.description
+                };
+                
+                // Set round to 3 (boss rounds are typically round 3, 6, 9, etc.)
+                this.gameState.gameState.current_round = 3;
+                this.gameState.gameState.round_target = 1250; // Round 3 target
+                
+                // Reset card manager and UI
+                this.cardManager.resetSortState();
+                this.cardManager.resetMapping(this.gameState.getHand().length);
+                this.cardManager.clearSelection();
+                
+                this.updateGameDisplay();
+                this.screenManager.showScreen('game');
+                this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+                this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType);
+                this.uiUpdater.updateDebugModeIndicator(this.gameState.isDebugging());
+                
+                logClientHand("Boss fight initial hand dealt:", this.gameState.getHand());
+               
+                // Switch to game background
+                const background = document.querySelector('.background');
+                if (background) {
+                    background.style.transition = 'background-image 0.5s ease';
+                    background.style.backgroundImage = "";
+                }
+                
+                const starfield = document.getElementById('starfield');
+                if (starfield) {
+                    starfield.style.transition = 'opacity 0.5s ease';
+                    starfield.style.opacity = "1";
+                }
+
+                this.animateCardDraw();
+                
+                // Show boss notification
+                alert(`Boss Fight Started!\n\nFacing: ${selectedBoss.name}\n${selectedBoss.description}\n\nGood luck!`);
+            } else {
+                console.error('Failed to start boss fight:', data);
+            }
+        } catch (error) {
+            console.error('Error starting boss fight:', error);
+        }
     }
 
     async startNewGame(debugMode = false) {
@@ -163,6 +312,8 @@ class PokerGame {
     async drawCards() {
         this._playButtonSound();
         if (this.cardManager.isSorting) return;
+        
+        console.log("DEBUG: Selected cards count:", this.cardManager.getSelectedCount(), "Selected cards:", Array.from(this.cardManager.selectedCards));
         if (this.cardManager.getSelectedCount() === 0) {
             alert('Please select at least one card to discard.');
             return;

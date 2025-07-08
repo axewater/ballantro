@@ -221,6 +221,10 @@
                         <span class="btn-icon">🐞</span>
                         Start Debug Mode
                     </button>
+                    <button id="debug-boss-btn" class="btn btn-secondary" style="background-color: rgba(255, 0, 0, 0.2); border-color: rgba(255, 0, 0, 0.4);">
+                        <span class="btn-icon">👹</span>
+                        Debug Boss
+                    </button>
                 </div>
             </div>
         </div>
@@ -335,6 +339,25 @@
                     <button id="next-round-btn" class="btn btn-primary">
                         <span class="btn-icon">➡️</span>
                         Next Round
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boss Selection Screen -->
+        <div id="boss-selection-screen" class="screen">
+            <div class="glass-panel boss-selection-panel">
+                <h2 class="boss-selection-title">👹 Select Boss to Fight</h2>
+                <p class="boss-selection-subtitle">Choose your opponent for a boss battle!</p>
+                
+                <div id="boss-list" class="boss-list">
+                    <!-- Boss cards will be dynamically added here -->
+                </div>
+                
+                <div class="boss-selection-actions">
+                    <button id="back-from-boss-selection-btn" class="btn btn-secondary">
+                        <span class="btn-icon">⬅️</span>
+                        Back to Menu
                     </button>
                 </div>
             </div>
