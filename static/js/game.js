@@ -1,22 +1,4 @@
-// Handle splash screen
-document.addEventListener('DOMContentLoaded', () => {
-    const splashScreen = document.getElementById('splash-screen');
-    
-    splashScreen.addEventListener('click', () => {
-        // Add fade out class to splash screen
-        splashScreen.classList.add('fade-out');
-        // Add fade in class to startup screen
-        const startupScreen = document.getElementById('startup-screen');
-        startupScreen.classList.add('fade-in');
-        // After fade out animation ends, hide splash and show startup screen fully
-        splashScreen.addEventListener('transitionend', () => {
-            splashScreen.classList.remove('active', 'fade-out');
-            startupScreen.classList.remove('fade-in');
-            startupScreen.classList.add('active');
-        }, { once: true });
-        initializeGame();
-    });
-});
+// Removed splash screen DOMContentLoaded event listener and initializeGame function as they are now handled in main.js
 
 function logClientHand(label, handArray) {
     const handStr = handArray && Array.isArray(handArray) ? handArray.map(card => `${card.rank}${card.suit.charAt(0).toUpperCase()}`).join(', ') : 'N/A';
@@ -790,11 +772,3 @@ class PokerGame {
         }
     }
 }
-
-// Initialize game function - called after splash screen is clicked
-function initializeGame() {
-    window.pokerGame = new PokerGame();
-}
-
-// The original DOMContentLoaded event listener has been moved to the top
-// and now calls initializeGame() after the splash screen is clicked

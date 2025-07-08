@@ -1,0 +1,40 @@
+/* Fade transition styles for splash and startup screens */
+#splash-screen {
+    opacity: 1;
+    transition: opacity 0.8s ease;
+}
+#splash-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+#startup-screen {
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+}
+#startup-screen.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+/* Video intro styles */
+#video-intro-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 9998;
+    display: none;
+}
+#video-intro-container.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+/* Background fade transition */
+.background {
+    transition: background-image 0.5s ease;
+}
+#starfield {
+    transition: opacity 0.5s ease;
+}
