@@ -80,6 +80,7 @@ class GameEngine:
 
         # Security check: Do not save scores from debug sessions.
         if session.is_debug_mode:
+            logger.warning(f"Attempt to save score for a debug session {session_id}. Score saving is disabled.")
             raise ValueError("Cannot save scores from a debug session.")
 
         # Security check: Only save scores if the game is actually over.
@@ -109,9 +110,6 @@ class GameEngine:
         """Get session or raise error"""
         if session_id not in self.sessions:
             raise ValueError(f"Session {session_id} not found")
-        session = self.sessions[session_id]
-        if session.is_debug_mode and hasattr(self, 'save_score'): # Check if trying to save score for debug session
-            logger.warning(f"Attempt to operate on a debug session {session_id} that might be restricted.")
         return self.sessions[session_id]
     
     def _load_highscores(self):

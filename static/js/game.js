@@ -13,6 +13,7 @@ class PokerGame {
         this.uiUpdater = new UIUpdater();
         this.previewManager = new PreviewManager(this.apiClient, this.cardManager);
         this.scoringAnimationManager = new ScoringAnimationManager(this.previewManager, this.uiUpdater);
+        this.soundManager = new SoundManager();
         // will hold the exact Card models the user played last
         this.lastPlayedCards = [];
         this.currentShopCards = []; // To store details of cards currently in the shop
@@ -97,6 +98,12 @@ class PokerGame {
 
     async startNewGame(debugMode = false) {
         if (this.cardManager.isSorting) return;
+        
+        // Initialize sound manager on first user interaction
+        this.soundManager.initialize();
+        
+        // Connect sound manager to scoring animation manager
+        this.scoringAnimationManager.setSoundManager(this.soundManager);
 
         try {
             const data = await this.apiClient.newGame(debugMode);

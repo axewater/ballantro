@@ -2,6 +2,7 @@ class ScoringAnimationManager{
     constructor(previewManager, uiUpdater){
         this.previewManager = previewManager;
         this.uiUpdater     = uiUpdater;
+        this.soundManager = null;
 
         /* Hand-preview panel elements (still used) */
         this.previewPanel          = document.getElementById('live-score-preview');
@@ -23,9 +24,14 @@ class ScoringAnimationManager{
         this.triggeredSet = new Set(); // indices of cards that actually score
     }
 
+    setSoundManager(soundManager) {
+        this.soundManager = soundManager;
+    }
+
     /*  entry-point called by game.js  */
     async startScoringAnimation(playedCardsData, playedCardElements, handResult, onComplete){
         // Store which card indices actually contribute to scoring
+        this.handResult = handResult;
         this.triggeredSet = new Set(handResult.triggered_indices || []);
         if(this.isAnimating) return;
         this.isAnimating = true;
@@ -160,6 +166,17 @@ class ScoringAnimationManager{
 
     async _processCardsSequentially(cards){
         const cm = window.pokerGame.cardManager;
+        const gameState = window.pokerGame?.gameState?.gameState;
+        const totalCardChips = this.handResult.card_chips;
+        const startScore = gameState?.total_score || 0;
+        const endScore = startScore + this.handResult.total_score;
+        const roundTarget = gameState?.round_target || 1;
+        const calculatePitchProgress = (chipValue) => {
+            const currentCardChips = (this._runningChips + chipValue) - this.handResult.base_chips;
+            const chipProgress = totalCardChips > 0 ? Math.min(currentCardChips / totalCardChips, 1) : 0;
+            const currentScore = startScore + ((endScore - startScore) * chipProgress);
+            return this.soundManager.calculateScoreProgress(currentScore, roundTarget);
+        };
         for(let i=0;i<cards.length;i++){
             const card = cards[i];
             const cardEl = this.cardRow.children[i];
@@ -183,6 +200,9 @@ class ScoringAnimationManager{
             if(isTriggered){
                 /* ▶ CHIP VALUE FLOAT */
                 const base = this._getBaseChipValueForCard(card);
+                if (this.soundManager && base > 0) {
+                    this.soundManager.playChipSound(calculatePitchProgress(base));
+                }
                 await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
                 this._runningChips += base;
                 this.liveChipTotalEl.textContent = this._runningChips;
@@ -190,20 +210,21 @@ class ScoringAnimationManager{
                 /* ▶ SPECIAL EFFECTS */
                 const bonusChips = this._getCardBonusChips(card);
                 if(bonusChips){
+                    if (this.soundManager) {
+                        this.soundManager.playChipSound(calculatePitchProgress(bonusChips));
+                    }
                     if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusChips}`, 'blue', this.liveChipTotalEl);
                     this._runningChips += bonusChips;
                     this.liveChipTotalEl.textContent = this._runningChips;
                 }
                 const bonusMult = this._getCardBonusMultiplier(card);
                 if(bonusMult){
+                    if (this.soundManager) {
+                        this.soundManager.playMultiplierSound();
+                    }
                     if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusMult}`, 'red',  this.liveMultTotalEl);
                     this._runningMult += bonusMult;
                     this.liveMultTotalEl.textContent = this._runningMult;
-                    /* 🔊 multiplier sound */
-                    if (window.scoreMultSound) {
-                        window.scoreMultSound.currentTime = 0;
-                        window.scoreMultSound.play().catch(()=>{});
-                    }
                 }
             }
             await this._delay(this.animationDelayPerCard - 300);
@@ -214,18 +235,16 @@ class ScoringAnimationManager{
         const invEls=document.querySelectorAll('.turbo-chip');
         for(const chipEl of invEls){
             chipEl.classList.add('flash');
+            // Play turbo chip sound for each flashing chip
+            if (this.soundManager) {
+                this.soundManager.playTurboChipSound();
+            }
             await this._delay(150);
             chipEl.classList.remove('flash');
         }
         /* inventory effects are already included by backend in total_score;
            we just add a small pause so flash is visible. */
         await this._delay(400);
-
-        /* 🔊 play multiplier sound once if any turbo chips could have affected score */
-        if (window.scoreMultSound && invEls.length){
-            window.scoreMultSound.currentTime = 0;
-            window.scoreMultSound.play().catch(()=>{});
-        }
     }
 
     async _finaliseScore(){
