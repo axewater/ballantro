@@ -9,6 +9,7 @@ from .poker_evaluator import PokerEvaluator #PokerEvaluator
 from .turbo_chips import TurboChip, TURBO_CHIP_REGISTRY, AVAILABLE_TURBO_IDS
 import logging
 import random
+import inspect
 
 # Configure basic logging for the server
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - SERVER: %(levelname)s - %(message)s')
@@ -22,15 +23,19 @@ _SESSION_INVENTORIES: dict[str, list[TurboChip]] = {}
 def _inject_turbo(session_id: str, res: "HandResult", played_cards: list["Card"] | None = None):
     inv = _SESSION_INVENTORIES.get(session_id, [])
     total = res.total_score
-    original_multiplier = res.multiplier
     applied = list(res.applied_bonuses)
     for chip in inv:
-        # Try extended signature first (for new chips); fall back to legacy.
-        try:
+        sig = inspect.signature(chip.apply_fn)
+        # Check if the chip's function is designed to receive the played cards
+        if 'played_cards' in sig.parameters:
             total = chip.apply_fn(total, res=res, played_cards=played_cards)
-        except TypeError:
+        else:
+            # Legacy chip that only takes the total score
             total = chip.apply_fn(total)
+        
+        # Log application regardless of which path was taken
         applied.append(f"Turbo '{chip.name}' applied")
+
     res.total_score = total
     res.applied_bonuses = applied
     return res
