@@ -478,9 +478,8 @@ class GameSession:
                 self.is_game_over = True
                 logger.info(f"Session {self.session_id}: Game over. Max hands reached for round {self.current_round}.")
             else:
-                # Continue with current hand, reset draws
-                self.draws_used = 0
-                logger.info(f"Session {self.session_id}: Continuing round {self.current_round}. Draws reset. Hands played: {self.hands_played}/{self.max_hands}")
+                # Continue with current hand
+                logger.info(f"Session {self.session_id}: Continuing round {self.current_round}. Hands played: {self.hands_played}/{self.max_hands}")
         
         # If in debug mode, game over and victory flags might be set differently or ignored for scoring
         if self.is_debug_mode:
@@ -601,6 +600,8 @@ class GameSession:
         # Advance to next round
         self.current_round += 1
         self.hands_played = 0
+        
+        # Reset draws for the new round
         self.draws_used = 0
         self.in_shop = False
 
