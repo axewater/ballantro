@@ -16,10 +16,42 @@
     <link rel="stylesheet" href="/static/css/screens.css">
     <link rel="stylesheet" href="/static/css/animations.css">
     <link rel="stylesheet" href="/static/css/responsive.css">
+    <style>
+        /* Fade transition styles for splash and startup screens */
+        #splash-screen {
+            opacity: 1;
+            transition: opacity 0.8s ease;
+        }
+        #splash-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #startup-screen {
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            pointer-events: none;
+        }
+        #startup-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
 </head>
 <body>
     <div class="game-container">
         <!-- Background -->
+        <!-- Splash Screen -->
+        <div id="splash-screen" class="screen active">
+            <div class="splash-container">
+                <img src="/static/assets/images/main.png" alt="Game Splash" class="splash-image">
+                <div class="splash-overlay">
+                    <div class="splash-text">
+                        <p>Click anywhere to start</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="background">
             <canvas id="starfield"></canvas>
             <div class="bg-gradient"></div>
@@ -172,7 +204,7 @@
         </div>
 
         <!-- Startup Screen -->
-        <div id="startup-screen" class="screen active">
+        <div id="startup-screen" class="screen">
             <div class="glass-panel main-menu">
                 <h1 class="game-title">
                     <span class="title-icon">♠</span>
@@ -381,6 +413,28 @@
     <script src="/static/js/game.js"></script>
     <script src="/static/js/starfield.js"></script>
     <script src="/static/js/animations.js"></script>
+    <script>
+        // Handle splash screen with fade transition
+        document.addEventListener('DOMContentLoaded', () => {
+            const splashScreen = document.getElementById('splash-screen');
+            const startupScreen = document.getElementById('startup-screen');
 
+            splashScreen.addEventListener('click', () => {
+                // Add fade-out class to splash screen
+                splashScreen.classList.add('fade-out');
+                // After transition ends, hide splash and show startup screen with fade-in
+                splashScreen.addEventListener('transitionend', () => {
+                    splashScreen.classList.remove('active');
+                    startupScreen.classList.add('active');
+                    initializeGame();
+                }, { once: true });
+            });
+        });
+
+        // Initialize game function - called after splash screen is clicked
+        function initializeGame() {
+            window.pokerGame = new PokerGame();
+        }
+    </script>
 </body>
 </html>

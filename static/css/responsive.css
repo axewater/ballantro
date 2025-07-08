@@ -1,4 +1,16 @@
 @media (max-width: 768px) {
+    /* Splash screen responsive adjustments */
+    .splash-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .splash-text p {
+        font-size: 1.2rem;
+    }
+    
     #game-screen {
         flex-direction: column; 
         align-items: center; 
@@ -83,4 +95,14 @@
         padding: 8px 16px;
         font-size: 0.8rem;
     }
+}
+
+/* Fade transition for splash screen */
+#splash-screen {
+    transition: opacity 0.5s ease;
+}
+
+#splash-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
 }

@@ -1,3 +1,23 @@
+// Handle splash screen
+document.addEventListener('DOMContentLoaded', () => {
+    const splashScreen = document.getElementById('splash-screen');
+    
+    splashScreen.addEventListener('click', () => {
+        // Add fade out class to splash screen
+        splashScreen.classList.add('fade-out');
+        // Add fade in class to startup screen
+        const startupScreen = document.getElementById('startup-screen');
+        startupScreen.classList.add('fade-in');
+        // After fade out animation ends, hide splash and show startup screen fully
+        splashScreen.addEventListener('transitionend', () => {
+            splashScreen.classList.remove('active', 'fade-out');
+            startupScreen.classList.remove('fade-in');
+            startupScreen.classList.add('active');
+        }, { once: true });
+        initializeGame();
+    });
+});
+
 function logClientHand(label, handArray) {
     const handStr = handArray && Array.isArray(handArray) ? handArray.map(card => `${card.rank}${card.suit.charAt(0).toUpperCase()}`).join(', ') : 'N/A';
     console.log(`CLIENT: ${label} [${handStr}] (Count: ${handArray ? handArray.length : 0})`);
@@ -742,7 +762,10 @@ class PokerGame {
     }
 }
 
-// Initialize game when page loads
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize game function - called after splash screen is clicked
+function initializeGame() {
     window.pokerGame = new PokerGame();
-});
+}
+
+// The original DOMContentLoaded event listener has been moved to the top
+// and now calls initializeGame() after the splash screen is clicked

@@ -1,3 +1,47 @@
+/* Splash screen */
+#splash-screen {
+    background-color: #000;
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+#splash-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.splash-container {
+    position: relative;
+    max-width: 100%;
+    max-height: 100vh;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.splash-image {
+    width: 100%;
+    height: auto;
+    max-height: 100vh;
+    object-fit: contain;
+    display: block;
+}
+
+.splash-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    text-align: center;
+}
+
+.splash-text p {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 300;
+}
+
 /* Startup screen */
 .main-menu { /* Extends .glass-panel */
     text-align: center;
