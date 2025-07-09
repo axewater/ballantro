@@ -49,6 +49,11 @@
 
         <!-- Game Screen -->
         <div id="game-screen" class="screen">
+            <!-- In-Game Settings Button -->
+            <button id="in-game-settings-btn" class="in-game-settings-btn">
+                <span class="settings-icon">⚙️</span>
+            </button>
+
             <!-- Live Score Preview Panel -->
             <div id="live-score-preview" class="glass-panel live-preview-panel"> 
                 <h4 id="preview-title" class="preview-title">
@@ -224,6 +229,10 @@
                     <button id="debug-boss-btn" class="btn btn-secondary" style="background-color: rgba(255, 0, 0, 0.2); border-color: rgba(255, 0, 0, 0.4);">
                         <span class="btn-icon">👹</span>
                         Debug Boss
+                    </button>
+                    <button id="settings-btn" class="btn btn-secondary">
+                        <span class="btn-icon">⚙️</span>
+                        Settings
                     </button>
                 </div>
             </div>
@@ -431,6 +440,7 @@
     <script src="/static/js/modules/ShopManager.js"></script>
     <script src="/static/js/modules/BossManager.js"></script>
     <script src="/static/js/modules/EventManager.js"></script>
+    <script src="/static/js/modules/SettingsManager.js"></script>
     <script src="/static/js/game.js"></script>
     <script src="/static/js/starfield.js"></script>
     <script src="/static/js/animations.js"></script>

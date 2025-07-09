@@ -83,6 +83,36 @@
     transform: none !important;
 }
 
+/* In-Game Settings Button */
+.in-game-settings-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.in-game-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.settings-icon {
+    font-size: 1.5rem;
+}
+
 .btn-icon {
     /* font-size: 1.2rem; */ /* Icon size, icons are removed */
 }
@@ -373,4 +403,82 @@
     box-shadow: 0 0 10px rgba(240, 147, 251, 0.8);
     pointer-events: none;
     z-index: 2000;
+}
+
+/* Settings Modal Styles */
+.settings-section {
+    margin: 20px 0;
+}
+
+.setting-item {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.setting-item label {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    min-width: 120px;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.slider-container input[type="range"] {
+    width: 120px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.slider-container input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-container input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #667eea;
+}
+
+.toggle-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    min-width: 60px;
+}
+
+/* Card Styles */
+.card {
+    width: 80px;
 }

@@ -1,6 +1,7 @@
 class SoundManager {
     constructor() {
         this.initialized = false;
+        this.settingsManager = null;
         this.cardDealSound = new Audio('/static/assets/sound/cards_dealt.mp3');
         this.cardClickSound = new Audio('/static/assets/sound/card_click.mp3');
         this.scoreMultSound = new Audio('/static/assets/sound/score_mult.mp3');
@@ -9,6 +10,11 @@ class SoundManager {
         this.roundCompleteSound = new Audio('/static/assets/sound/end_round.mp3');
         this.chipSound = new Audio('/static/assets/sound/money_ching.mp3');
         this.turboChipSound = new Audio('/static/assets/sound/score_mult.mp3');
+    }
+
+    setSettingsManager(settingsManager) {
+        this.settingsManager = settingsManager;
+        this.updateVolumes();
     }
 
     initialize() {
@@ -29,6 +35,18 @@ class SoundManager {
         window.scoreMultSound = this.scoreMultSound;
         
         this.initialized = true;
+        this.updateVolumes();
+    }
+
+    updateVolumes() {
+        if (!this.settingsManager) return;
+        
+        const volume = this.settingsManager.getSetting('soundVolume');
+        [this.cardDealSound, this.cardClickSound, this.scoreMultSound, 
+         this.cardHoverSound, this.shopPurchaseSound, this.roundCompleteSound,
+         this.chipSound, this.turboChipSound].forEach(audio => {
+            audio.volume = volume;
+        });
     }
 
     playCardDealSound() {

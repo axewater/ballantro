@@ -9,6 +9,10 @@ class EventManager {
         document.getElementById('start-debug-game-btn').addEventListener('click', () => this.game.startNewGame(true));
         document.getElementById('debug-boss-btn').addEventListener('click', () => this.game.bossManager.showBossSelection());
         document.getElementById('highscores-btn').addEventListener('click', () => this.game.showHighscores());
+        document.getElementById('settings-btn').addEventListener('click', () => this.game.settingsManager.showSettings());
+
+        // In-game settings button
+        document.getElementById('in-game-settings-btn').addEventListener('click', () => this.game.settingsManager.showSettings());
 
         // Game screen
         document.getElementById('draw-cards-btn').addEventListener('click', () => this.game.drawCards());

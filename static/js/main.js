@@ -59,6 +59,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Show and play the intro video
         videoContainer.style.display = 'block';
+        
+        // Apply video audio settings if available
+        if (window.pokerGame && window.pokerGame.settingsManager) {
+            window.pokerGame.settingsManager.applySettings();
+        }
+        
         introVideo.play().catch(err => {
             console.error('Error playing video:', err);
             skipVideoAndShowMenu(); // Fallback if video fails to play

@@ -19,6 +19,7 @@ class PokerGame {
         this.soundManager = new SoundManager();
         this.shopManager = new ShopManager(this);
         this.bossManager = new BossManager(this);
+        this.settingsManager = new SettingsManager();
         this.eventManager = new EventManager(this);
         
         // Connect sound manager to scoring animation manager
@@ -26,6 +27,9 @@ class PokerGame {
         
         // Will hold the exact Card models the user played last
         this.lastPlayedCards = [];
+        
+        // Connect settings manager to sound manager
+        this.soundManager.setSettingsManager(this.settingsManager);
 
         // Initialize event listeners and show startup screen
         this.eventManager.initializeEventListeners();
@@ -48,6 +52,9 @@ class PokerGame {
         
         // Connect sound manager to scoring animation manager
         this.scoringAnimationManager.setSoundManager(this.soundManager);
+
+        // Initialize settings
+        this.settingsManager.initialize();
 
         try {
             const data = await this.apiClient.newGame(debugMode);
