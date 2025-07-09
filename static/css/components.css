@@ -242,6 +242,14 @@
     transform: translateY(-15px) scale(1.05);
 }
 
+/* Right-click drag selection visual indicator */
+.card.drag-hover {
+    border: 2px solid #f1c40f;
+    box-shadow: 
+        0 12px 30px rgba(241, 196, 15, 0.4),
+        inset 0 0 0 1px rgba(241, 196, 15, 0.3);
+}
+
 .card-rank {
     font-size: 1.2rem;
     font-weight: bold;

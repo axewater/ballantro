@@ -65,6 +65,11 @@ class PokerGame {
                 this.cardManager.resetMapping(this.gameState.getHand().length); // sync mapping
                 this.cardManager.clearSelection();
                 this.updateGameDisplay();
+                this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
+                
+                // Initialize right-click handling
+                this._initializeRightClickHandling();
+                
                 this.screenManager.showScreen('game');
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType); // Update button visuals
@@ -442,5 +447,69 @@ class PokerGame {
             '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2'
         };
         return rankMap[rank] || rank;
+    }
+
+    _initializeRightClickHandling() {
+        // Get the player hand container
+        const playerHand = document.getElementById('player-hand');
+        if (!playerHand) return;
+        
+        // Prevent default context menu on the entire game container
+        const gameContainer = document.querySelector('.game-container');
+        if (gameContainer) {
+            gameContainer.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                return false;
+            });
+        }
+        
+        // Handle right mouse button down
+        playerHand.addEventListener('mousedown', (e) => {
+            // Check if it's right mouse button (button 2)
+            if (e.button === 2) {
+                e.preventDefault();
+                
+                // Find the card element that was clicked
+                let cardElement = e.target;
+                while (cardElement && !cardElement.classList.contains('card')) {
+                    cardElement = cardElement.parentElement;
+                }
+                
+                if (cardElement && cardElement.dataset.index !== undefined) {
+                    const index = parseInt(cardElement.dataset.index, 10);
+                    this.cardManager.startRightClickDrag(index);
+                }
+            }
+        });
+        
+        // Handle mouse move during right-click drag
+        playerHand.addEventListener('mousemove', (e) => {
+            if (this.cardManager.rightClickDragActive) {
+                // Find the card element under the cursor
+                let cardElement = document.elementFromPoint(e.clientX, e.clientY);
+                while (cardElement && !cardElement.classList.contains('card')) {
+                    cardElement = cardElement.parentElement;
+                }
+                
+                if (cardElement && cardElement.dataset.index !== undefined) {
+                    const index = parseInt(cardElement.dataset.index, 10);
+                    this.cardManager.updateRightClickDrag(index);
+                }
+            }
+        });
+        
+        // Handle right mouse button up
+        document.addEventListener('mouseup', (e) => {
+            // Check if it's right mouse button (button 2)
+            if (e.button === 2 && this.cardManager.rightClickDragActive) {
+                e.preventDefault();
+                
+                this.cardManager.endRightClickDrag((selectedCards) => {
+                    this.uiUpdater.updateButtonStates(this.gameState.gameState, selectedCards.size);
+                    this.uiUpdater.elements.selectionCount.textContent = selectedCards.size;
+                    this.previewManager.updateLivePreview(selectedCards, this.gameState.gameState);
+                });
+            }
+        });
     }
 }

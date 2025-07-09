@@ -23,6 +23,10 @@ class CardManager {
         this.SUIT_ORDER_MAP = { 
             'spades': 4, 'hearts': 3, 'clubs': 2, 'diamonds': 1 
         };
+        
+        // Right-click drag selection
+        this.rightClickDragActive = false;
+        this.cardsInDragSelection = new Set();
     }
 
     /* --------------------------------------------------------------------- */
@@ -95,6 +99,7 @@ class CardManager {
         cardElement.appendChild(iconArea);
         cardElement.appendChild(suitElement);
 
+        // Add hover sound event
         /* ── Hover sound ── */
         cardElement.addEventListener('mouseenter', () => {
             if (window.playCardHoverSound) window.playCardHoverSound();
@@ -125,14 +130,15 @@ class CardManager {
             window.gameAnimations.animateCardSelection(cardElement, true);
         }
         
-        /* 🔊 play click sound */
+        // Play click sound
+        this._playCardClickSound();
+        
+    }
+
+    _playCardClickSound() {
         if (window.cardClickSound) {
             window.cardClickSound.currentTime = 0;
             window.cardClickSound.play().catch(() => {});
-        }
-
-        if (onSelectionChange) {
-            onSelectionChange(this.selectedCards);
         }
     }
 
@@ -340,6 +346,75 @@ class CardManager {
     resetSortState() {
         this.activeSortType = null;
         // Mapping reset is handled explicitly when a fresh hand arrives
+    }
+    
+    // Right-click drag selection methods
+    startRightClickDrag(index) {
+        if (this.isSorting) return;
+        
+        this.rightClickDragActive = true;
+        this.cardsInDragSelection.clear();
+        this.cardsInDragSelection.add(index);
+        
+        // Store the initial selection state of cards
+        this.initialSelectionState = new Map();
+        this.initialSelectionState.set(index, this.selectedCards.has(index));
+    }
+    
+    updateRightClickDrag(index) {
+        if (!this.rightClickDragActive || this.isSorting) return;
+        
+        // Add the card to our tracking set
+        this.cardsInDragSelection.add(index);
+        
+        const cardContainer = document.getElementById('player-hand');
+        const cardElement = cardContainer.querySelector(`.card[data-index="${index}"]`);
+        
+        // Store the initial selection state if we haven't seen this card yet
+        if (!this.initialSelectionState.has(index)) {
+            this.initialSelectionState.set(index, this.selectedCards.has(index));
+        }
+        
+        if (cardElement) {
+            // Add a temporary visual indicator class
+            cardElement.classList.add('drag-hover');
+        }
+    }
+    
+    endRightClickDrag(onSelectionChange) {
+        if (!this.rightClickDragActive || this.isSorting) return;
+        
+        // Remove all temporary visual indicators
+        const cardContainer = document.getElementById('player-hand');
+        cardContainer.querySelectorAll('.drag-hover').forEach(el => {
+            el.classList.remove('drag-hover');
+        });
+        
+        // Apply the selection to all cards in the drag
+        this.cardsInDragSelection.forEach(index => {
+            const cardElement = cardContainer.querySelector(`.card[data-index="${index}"]`);
+            if (cardElement) {
+                // Get the initial state of this card
+                const wasInitiallySelected = this.initialSelectionState.get(index) || false;
+                
+                // Toggle the selection state based on initial state
+                if (wasInitiallySelected) {
+                    // If it was initially selected, deselect it
+                    this.selectedCards.delete(index);
+                    cardElement.classList.remove('selected');
+                } else {
+                    // If it was initially not selected, select it
+                    this.selectedCards.add(index);
+                    cardElement.classList.add('selected');
+                    window.gameAnimations.animateCardSelection(cardElement, true);
+                }
+            }
+        });
+        
+        this._playCardClickSound();
+        this.rightClickDragActive = false;
+        onSelectionChange && onSelectionChange(this.selectedCards);
+        this.initialSelectionState = null; // Clean up
     }
 
     // ------------------------------------------------------------------ //

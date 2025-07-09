@@ -446,5 +446,13 @@
     <script src="/static/js/colorExtractor.js"></script>
     <script src="/static/js/animations.js"></script>
     <script src="/static/js/main.js"></script>
+    <script>
+        // Prevent context menu globally
+        document.addEventListener('contextmenu', function(e) {
+            // Always prevent the default context menu
+            e.preventDefault();
+            return false;
+        }, false);
+    </script>
 </body>
 </html>
