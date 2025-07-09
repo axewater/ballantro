@@ -454,16 +454,44 @@ class PokerGame {
         const playerHand = document.getElementById('player-hand');
         if (!playerHand) return;
         
-        // Prevent default context menu on the entire game container
+        // Get the game container for global right-click handling
         const gameContainer = document.querySelector('.game-container');
-        if (gameContainer) {
-            gameContainer.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                return false;
-            });
-        }
+        if (!gameContainer) return;
+        let isDragging = false;
         
-        // Handle right mouse button down
+        // Prevent default context menu on the entire game container
+        gameContainer.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
+        });
+        
+        // Handle right mouse button down anywhere in the game container
+        gameContainer.addEventListener('mousedown', (e) => {
+            // Check if it's right mouse button (button 2)
+            if (e.button === 2) {
+                e.preventDefault();
+                
+                // Find the card element that was clicked (if any)
+                let cardElement = e.target;
+                while (cardElement && !cardElement.classList.contains('card')) {
+                    cardElement = cardElement.parentElement;
+                }
+                
+                // Start the drag selection
+                let index = null;
+                if (cardElement && cardElement.dataset.index !== undefined) {
+                    index = parseInt(cardElement.dataset.index, 10);
+                }
+                
+                // Start the drag selection even if we didn't click on a card
+                this.cardManager.startRightClickDrag(index);
+                
+                // Add visual feedback to the game container
+                gameContainer.classList.add('right-drag-active');
+            }
+        });
+        
+        // Handle right mouse button down on player hand (for backward compatibility)
         playerHand.addEventListener('mousedown', (e) => {
             // Check if it's right mouse button (button 2)
             if (e.button === 2) {
@@ -483,7 +511,7 @@ class PokerGame {
         });
         
         // Handle mouse move during right-click drag
-        playerHand.addEventListener('mousemove', (e) => {
+        gameContainer.addEventListener('mousemove', (e) => {
             if (this.cardManager.rightClickDragActive) {
                 // Find the card element under the cursor
                 let cardElement = document.elementFromPoint(e.clientX, e.clientY);
@@ -495,6 +523,9 @@ class PokerGame {
                     const index = parseInt(cardElement.dataset.index, 10);
                     this.cardManager.updateRightClickDrag(index);
                 }
+            }
+            else {
+                // If we're not in right-click drag mode, do nothing
             }
         });
         
@@ -509,6 +540,9 @@ class PokerGame {
                     this.uiUpdater.elements.selectionCount.textContent = selectedCards.size;
                     this.previewManager.updateLivePreview(selectedCards, this.gameState.gameState);
                 });
+                
+                // Remove visual feedback from the game container
+                gameContainer.classList.remove('right-drag-active');
             }
         });
     }

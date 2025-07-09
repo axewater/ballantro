@@ -351,20 +351,28 @@ class CardManager {
     // Right-click drag selection methods
     startRightClickDrag(index) {
         if (this.isSorting) return;
+        // If index is null, we're starting from empty space
         
         this.rightClickDragActive = true;
         this.cardsInDragSelection.clear();
-        this.cardsInDragSelection.add(index);
+        if (index !== null) {
+            this.cardsInDragSelection.add(index);
+        }
         
         // Store the initial selection state of cards
         this.initialSelectionState = new Map();
-        this.initialSelectionState.set(index, this.selectedCards.has(index));
+        if (index !== null) {
+            this.initialSelectionState.set(index, this.selectedCards.has(index));
+        }
     }
     
     updateRightClickDrag(index) {
         if (!this.rightClickDragActive || this.isSorting) return;
         
-        // Add the card to our tracking set
+        if (index === null) {
+            return; // Skip if not over a card
+        }
+        
         this.cardsInDragSelection.add(index);
         
         const cardContainer = document.getElementById('player-hand');
