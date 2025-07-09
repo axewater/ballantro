@@ -280,15 +280,17 @@ class ScoringAnimationManager{
                 for (const cardEl of triggeredCards) {
                     this._animateConnection(chipEl, cardEl);
                     // Spawn floating number on each card hit by laser
-                    await this._spawnFloatingNum(cardEl, `+3`, 'red', this.liveMultTotalEl);
+                    this._spawnFloatingNum(cardEl, `+3`, 'red', this.liveMultTotalEl);
+                    // Update score immediately after each laser hit (with small delay for visual flow)
+                    await this._delay(600); // Wait for floating number to travel partway
+                    this._turboMultBonus += 3;
+                    this._runningMult += 3;
+                    this.liveMultTotalEl.textContent = this._runningMult;
                     await this._delay(100);
                 }
                 
-                // Add the multiplier bonus with animation
+                // Add the total multiplier bonus with animation from the chip
                 await this._spawnFloatingNum(chipEl, `+${bonusToAdd}`, 'red', this.liveMultTotalEl);
-                this._turboMultBonus += bonusToAdd;
-                this._runningMult += bonusToAdd;
-                this.liveMultTotalEl.textContent = this._runningMult;
                 if (this.soundManager) this.soundManager.playMultiplierSound();
             }
             chipEl.classList.add('flash');
