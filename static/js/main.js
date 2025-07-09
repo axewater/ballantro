@@ -29,13 +29,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100);
     }
 
+    // --- Refactored Video Handling ---
+
+    // Define handlers so they can be removed by reference
+    const handleVideoEnd = () => skipVideoAndShowMenu();
+    const handleVideoClick = () => skipVideoAndShowMenu();
+
+    // Function to remove video listeners and stop the video
+    function cleanupVideoPlayback() {
+        introVideo.pause();
+        videoContainer.style.display = 'none';
+        introVideo.removeEventListener('ended', handleVideoEnd);
+        videoContainer.removeEventListener('click', handleVideoClick);
+    }
+
     // Function to skip video and go to main menu
     function skipVideoAndShowMenu() {
-        introVideo.pause();
-        videoContainer.style.display = 'none'; // Hide the video container
+        cleanupVideoPlayback(); // Stop video and remove listeners to prevent multiple calls
         showMainMenuBackground();
         startupScreen.classList.add('active');
-        initializeGame();
+        if (!window.pokerGame) { // Initialize only if it doesn't exist yet
+            initializeGame();
+        }
     }
 
     // Handle splash screen click
@@ -53,37 +68,32 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             showMainMenuBackground();
             startupScreen.classList.add('active');
-            initializeGame();
+            if (!window.pokerGame) {
+                initializeGame();
+            }
         }, 1000);
         
-        // Also skip video when it ends (as a fallback)
-        introVideo.addEventListener('ended', skipVideoAndShowMenu);
-        
-        // Skip video on click or key press
-        videoContainer.addEventListener('click', skipVideoAndShowMenu);
-        // document.addEventListener('keydown', skipVideoAndShowMenu); // Removed to prevent keys from returning to menu
+        // Add listeners that can be removed later
+        introVideo.addEventListener('ended', handleVideoEnd);
+        videoContainer.addEventListener('click', handleVideoClick);
     });
 
-    // Intercept the start game button click to ensure video is stopped
+    // Intercept the start game buttons to clean up video playback
     document.getElementById('start-game-btn').addEventListener('click', function() {
-        // Make sure video is paused and container is hidden
-        introVideo.pause();
-        videoContainer.style.display = 'none';
-        // Show game background (starfield)
+        cleanupVideoPlayback();
         showGameBackground();
     });
     
-    // Also intercept debug mode button
     document.getElementById('start-debug-game-btn').addEventListener('click', function() {
-        introVideo.pause();
-        videoContainer.style.display = 'none';
+        cleanupVideoPlayback();
         showGameBackground();
     });
 
-    // Also intercept debug boss button
     document.getElementById('debug-boss-btn').addEventListener('click', function() {
+        cleanupVideoPlayback();
         showGameBackground();
     });
+
 
     // Listen for events to return to main menu (victory, game over, back to menu)
     // Assuming buttons with these IDs exist and are used to return to menu

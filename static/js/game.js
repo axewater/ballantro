@@ -206,11 +206,16 @@ class PokerGame {
             // Clear any existing selection state before starting boss fight
             this.cardManager.clearSelection();
             
-            // Start a new debug game
+            // Ensure the game state is properly set before any UI updates
             const data = await this.apiClient.newGame(true); // Debug mode
             if (data.success) {
                 console.log("CLIENT: New boss fight started. Initial game state received:", data.game_state);
+                
                 this.gameState.setGameState(data.game_state);
+                
+                // Reset card manager state completely
+                this.cardManager.clearSelection();
+                this.cardManager.resetMapping(this.gameState.getHand().length);
                 
                 // Force the game into boss round mode with the selected boss
                 this.gameState.gameState.is_boss_round = true;
@@ -224,16 +229,15 @@ class PokerGame {
                 this.gameState.gameState.current_round = 3;
                 this.gameState.gameState.round_target = 1250; // Round 3 target
                 
-                // Reset card manager and UI
-                this.cardManager.resetSortState();
-                this.cardManager.resetMapping(this.gameState.getHand().length);
-                this.cardManager.clearSelection();
-                
                 this.updateGameDisplay();
                 this.screenManager.showScreen('game');
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType);
                 this.uiUpdater.updateDebugModeIndicator(this.gameState.isDebugging());
+                
+                // Force update button states and selection count
+                this.uiUpdater.updateButtonStates(this.gameState.gameState, 0);
+                this.uiUpdater.elements.selectionCount.textContent = 0;
                 
                 logClientHand("Boss fight initial hand dealt:", this.gameState.getHand());
                
@@ -313,18 +317,34 @@ class PokerGame {
         this._playButtonSound();
         if (this.cardManager.isSorting) return;
         
-        console.log("DEBUG: Selected cards count:", this.cardManager.getSelectedCount(), "Selected cards:", Array.from(this.cardManager.selectedCards));
-        if (this.cardManager.getSelectedCount() === 0) {
+        // Get selected cards ONCE to avoid race condition
+        const selectedCards = this.cardManager.getSelectedCards();
+        const selectedCount = selectedCards.length;
+
+        console.log("DEBUG: Draw cards - selectedCount:", selectedCount, "selectedCards:", selectedCards, "visualSelection:", Array.from(this.cardManager.selectedCards));
+        if (selectedCount === 0) {
             alert('Please select at least one card to discard.');
             return;
         }
 
+        // Additional validation - check if any selected indices are invalid
+        const handSize = this.gameState.getHand().length;
+        const invalidIndices = selectedCards.filter(idx => idx < 0 || idx >= handSize);
+        if (invalidIndices.length > 0) {
+            console.error("Invalid card indices detected:", invalidIndices);
+            this.cardManager.clearSelection();
+            this.updateGameDisplay();
+            alert('Invalid card selection detected. Please try again.');
+            return;
+        }
+
         logClientHand("Hand BEFORE draw request:", this.gameState.getHand());
-        console.log("CLIENT: Selected card indices for discard:", this.cardManager.getSelectedCards());
+        console.log("CLIENT: Selected card indices for discard:", selectedCards);
+
         try {
             const data = await this.apiClient.drawCards(
                 this.gameState.sessionId,
-                this.cardManager.getSelectedCards() // translated indices
+                selectedCards  // translated indices
             );
             if (data.success) {
                 console.log("CLIENT: Draw cards response received. Updated game state:", data.game_state);

@@ -137,6 +137,7 @@ class CardManager {
     }
 
     clearSelection() {
+        console.trace("CardManager: clearSelection() called from:");
         this.selectedCards.clear();
     }
 
