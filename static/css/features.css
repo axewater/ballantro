@@ -113,9 +113,14 @@
 }
 
 /* Remaining Deck Modal Specific Styles */
-#remaining-deck-modal .modal-content { /* Extends .modal-content from components.css */
-    max-width: 700px; 
+#remaining-deck-modal .modal-content {
+    max-width: 800px; /* Increased width to accommodate larger cards */
     padding: 30px;
+}
+
+.remaining-deck-content {
+    width: 100%;
+    max-width: 800px;
 }
 
 .remaining-deck-grid {
@@ -145,7 +150,14 @@
 .suit-row .card-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 5px;
+}
+
+.suit-row .card-list em {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 /* Styles for Live Preview Panel in Scoring Mode */
@@ -303,4 +315,3 @@
 .turbo-chip.activate {
     animation: turboActivate 0.8s ease-out;
 }
-

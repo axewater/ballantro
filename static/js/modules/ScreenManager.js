@@ -84,26 +84,76 @@ class ScreenManager {
 
             cardsBySuit[suit].forEach(card => {
                 const miniCardElement = document.createElement('div');
-                miniCardElement.className = 'mini-card';
+                miniCardElement.className = `mini-card ${card.suit.toLowerCase()}`;
                 const suitSymbol = this._getSuitSymbol(card.suit);
-                miniCardElement.textContent = `${card.rank}${suitSymbol}`;
+                
+                // Create content container
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'mini-card-content';
+                
+                // Add rank and suit
+                const rankSpan = document.createElement('span');
+                rankSpan.textContent = card.rank;
+                rankSpan.className = 'mini-card-rank';
+                
+                const suitSpan = document.createElement('span');
+                suitSpan.textContent = suitSymbol;
+                suitSpan.className = 'mini-card-suit';
+                
+                contentContainer.appendChild(rankSpan);
+                contentContainer.appendChild(suitSpan);
+                miniCardElement.appendChild(contentContainer);
 
                 // Mark special cards
                 if (card.effects && card.effects.length > 0) {
                     miniCardElement.classList.add('special');
-                    miniCardElement.textContent += '✦';
+                    
+                    // Add effect icons based on effect type
+                    card.effects.forEach(effect => {
+                        const effectIcon = document.createElement('div');
+                        effectIcon.className = 'mini-card-effect';
+                        
+                        if (effect.startsWith('bonus_chips')) {
+                            effectIcon.textContent = '✚';
+                            effectIcon.style.backgroundColor = '#34adee';
+                        } else if (effect.startsWith('bonus_multiplier')) {
+                            effectIcon.textContent = '★';
+                            effectIcon.style.backgroundColor = '#e74c3c';
+                        } else if (effect.startsWith('bonus_money')) {
+                            effectIcon.textContent = '$';
+                            effectIcon.style.backgroundColor = '#2ecc71';
+                        } else if (effect === 'bonus_random') {
+                            effectIcon.textContent = '?';
+                            effectIcon.style.backgroundColor = '#f1c40f';
+                        }
+                        
+                        miniCardElement.appendChild(effectIcon);
+                    });
                 }
 
                 if (card.suit === 'hearts' || card.suit === 'diamonds') {
                     // Four-color deck
                     if (card.suit === 'hearts') {
-                        miniCardElement.style.color = '#e74c3c'; // red
+                        rankSpan.style.color = '#e74c3c'; // red
+                        suitSpan.style.color = '#e74c3c'; // red
                     } else { // diamonds
-                        miniCardElement.style.color = '#3498db'; // blue
+                        rankSpan.style.color = '#3498db'; // blue
+                        suitSpan.style.color = '#3498db'; // blue
                     }
                 } else {
-                    miniCardElement.style.color =
-                        card.suit === 'clubs' ? '#2ecc71' : '#cccccc'; // green or grey
+                    const color = card.suit === 'clubs' ? '#2ecc71' : '#000000'; // green or black
+                    rankSpan.style.color = color;
+                    suitSpan.style.color = color;
+                }
+                
+                // Add tooltip for card effects
+                if (card.effects && card.effects.length > 0) {
+                    const tooltipText = this._generateEffectTooltip(card);
+                    miniCardElement.dataset.tooltipText = tooltipText;
+                    
+                    miniCardElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(tooltipText, event));
+                    miniCardElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
+                    miniCardElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
                 }
                 
                 suitContainers[suit].appendChild(miniCardElement);
@@ -123,6 +173,28 @@ class ScreenManager {
             case 'spades': return '♠';
             default: return '';
         }
+    }
+    
+    _generateEffectTooltip(card) {
+        if (!card.effects || card.effects.length === 0) return '';
+        
+        let tooltipHTML = `<strong>${card.rank} of ${card.suit.charAt(0).toUpperCase() + card.suit.slice(1)}</strong><br>`;
+        
+        card.effects.forEach(effect => {
+            const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effect];
+            if (effectInfo) {
+                tooltipHTML += `<div style="margin-top: 5px;">`;
+                tooltipHTML += `<strong>${effectInfo.name}:</strong> ${effectInfo.description}`;
+                tooltipHTML += `</div>`;
+            } else {
+                // Fallback if effect description not found
+                tooltipHTML += `<div style="margin-top: 5px;">`;
+                tooltipHTML += `<strong>Special Effect:</strong> ${effect.replace(/_/g, ' ')}`;
+                tooltipHTML += `</div>`;
+            }
+        });
+        
+        return tooltipHTML;
     }
 }
 
