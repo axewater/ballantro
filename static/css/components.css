@@ -21,21 +21,34 @@
 
 /* Buttons */
 .btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 16px 32px;
-    border: none;
-    border-radius: 12px;
+    padding: 0.9rem 2.8rem;
+    border-radius: 2rem;
     font-size: 1.1rem;
     font-weight: 600;
+    color: #fff;
+    background: linear-gradient(140deg,
+                var(--c1, #482ee6) 0%,
+                var(--c2, #0ab0b9) 40%,
+                var(--c3, #d8932b) 100%);
+    background-size: 400% 400%;
+    border: 1px solid rgba(255,255,255,.25);
+    backdrop-filter: blur(6px) saturate(120%);
+    box-shadow:
+        0 2px 8px rgba(0,0,0,.25),
+        inset 0 0 4px rgba(255,255,255,.4);
     cursor: pointer;
-    transition: all 0.3s ease;
     text-decoration: none;
     min-width: 150px; /* Adjusted min-width for shorter button texts */
-    position: relative;
     overflow: hidden;
+    transition:
+        background-position 4s linear,
+        transform .25s ease,
+        box-shadow .25s ease;
 }
 
 .btn::before {
@@ -53,34 +66,67 @@
     left: 100%;
 }
 
+.btn:hover {
+    background-position: 120% 50%;
+    transform: translateY(-2px);
+    box-shadow:
+        0 4px 14px rgba(0,0,0,.35),
+        inset 0 0 4px rgba(255,255,255,.6);
+}
+
+/* Extra glowing effect around buttons */
+.btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    filter: blur(8px);
+    opacity: .45;
+    z-index: -1;
+}
+
 /* Button accents - Using the final definition from "Hi-tech neon backdrop" section */
 .btn-primary {
-    background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
-    color: white;
-    /* box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); Original */
+    mix-blend-mode: screen;
+    background: linear-gradient(140deg,
+                var(--c1, #482ee6) 0%,
+                var(--c2, #0ab0b9) 60%,
+                var(--c3, #d8932b) 100%);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(52, 152, 219, .6); /* Updated */
+    background-position: 120% 50%;
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(10px);
+    background: linear-gradient(140deg,
+                rgba(var(--c1, #482ee6), 0.7) 0%,
+                rgba(var(--c2, #0ab0b9), 0.7) 40%,
+                rgba(var(--c3, #d8932b), 0.7) 100%);
+    opacity: 0.85;
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+    opacity: 1;
 }
 
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none !important;
+    background-position: 0% 0% !important;
+    box-shadow: none !important;
+}
+
+/* Accessibility - keyboard focus styles */
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 
+        0 0 0 3px rgba(255,255,255,0.7),
+        0 0 0 6px var(--c2, #0ab0b9);
+    transform: translateY(-2px);
+    transition: box-shadow 0.2s ease;
 }
 
 /* In-Game Settings Button */
@@ -182,8 +228,10 @@
 
 /* Ensure selected cards maintain their position but lose hover effects */
 .card.selected {
-    transform: translateY(-15px) scale(1.05);
+    transform: translateY(-10px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    /* The existing transition on .card will make this snappy */
+    /* border-color can remain the default or be styled if needed, e.g., border-color: #f1c40f; */
     background: white;
     border: 2px solid #ddd;
     animation: none;
@@ -192,13 +240,6 @@
 .card.selected:hover {
     /* Prevent additional hover effects on selected cards */
     transform: translateY(-15px) scale(1.05);
-}
-
-.card.selected {
-    transform: translateY(-10px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    /* The existing transition on .card will make this snappy */
-    /* border-color can remain the default or be styled if needed, e.g., border-color: #f1c40f; */
 }
 
 .card-rank {

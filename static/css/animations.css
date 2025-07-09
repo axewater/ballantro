@@ -1,3 +1,10 @@
+/* Button background animation */
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 /* Original background pattern animation (no longer used by default but kept if needed) */
 @keyframes float {
     0%, 100% { transform: translateY(0px) rotate(0deg); }
