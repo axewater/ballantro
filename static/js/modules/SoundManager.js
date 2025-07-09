@@ -1,240 +1,122 @@
-/**
- * SoundManager.js
- * 
- * Handles all Web Audio API-based sound effects for the scoring sequence.
- * Creates dynamic, pitch-shifting sounds that respond to game progress.
- */
-class SoundManager {
+ class SoundManager {
     constructor() {
-        this.audioContext = null;
-        this.masterGain = null;
-        this.isInitialized = false;
+        this.initialized = false;
+        this.cardDealSound = new Audio('/static/assets/sound/cards_dealt.mp3');
+        this.cardClickSound = new Audio('/static/assets/sound/card_click.mp3');
+        this.scoreMultSound = new Audio('/static/assets/sound/score_mult.mp3');
+        this.cardHoverSound = new Audio('/static/assets/sound/cards_flick.mp3');
+        this.shopPurchaseSound = new Audio('/static/assets/sound/money_ching.mp3');
+        this.roundCompleteSound = new Audio('/static/assets/sound/end_round.mp3');
+        this.chipSound = new Audio('/static/assets/sound/money_ching.mp3');
+        this.turboChipSound = new Audio('/static/assets/sound/score_mult.mp3');
     }
 
-    /**
-     * Initialize the Web Audio API context.
-     * Must be called after user interaction to comply with browser policies.
-     */
     initialize() {
-        if (this.isInitialized) return;
-
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            this.masterGain = this.audioContext.createGain();
-            this.masterGain.connect(this.audioContext.destination);
-            this.masterGain.gain.setValueAtTime(0.3, this.audioContext.currentTime); // Master volume
-            this.isInitialized = true;
-            console.log('SoundManager: Web Audio API initialized successfully');
-        } catch (error) {
-            console.warn('SoundManager: Failed to initialize Web Audio API:', error);
-        }
+        if (this.initialized) return;
+        
+        // Set up global sound helpers
+        window.cardHoverSound = this.cardHoverSound;
+        window.playCardHoverSound = () => { 
+            const s = window.cardHoverSound; 
+            if(s){ 
+                s.pause(); 
+                s.currentTime = 0; 
+                s.play().catch(()=>{}); 
+            } 
+        };
+        
+        window.cardClickSound = this.cardClickSound;
+        window.scoreMultSound = this.scoreMultSound;
+        
+        this.initialized = true;
     }
 
-    /**
-     * Play a chip scoring sound with dynamic pitch based on progress toward target score.
-     * @param {number} progress - Value from 0.0 to 1.0 representing progress toward round target
-     */
-    playChipSound(progress = 0) {
-        if (!this.isInitialized) return;
-
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            // Connect the audio graph
-            oscillator.connect(gainNode);
-            gainNode.connect(this.masterGain);
-            
-            // Calculate frequency based on progress (200Hz to 800Hz)
-            const baseFreq = 200;
-            const maxFreq = 800;
-            const frequency = baseFreq + (progress * (maxFreq - baseFreq));
-            
-            oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-            oscillator.type = 'triangle'; // Warm, pleasant tone
-            
-            // Create envelope (attack, decay, sustain, release)
-            const now = this.audioContext.currentTime;
-            const duration = 0.15;
-            
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.4, now + 0.02); // Quick attack
-            gainNode.gain.exponentialRampToValueAtTime(0.1, now + 0.05); // Decay
-            gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration); // Release
-            
-            oscillator.start(now);
-            oscillator.stop(now + duration);
-            
-        } catch (error) {
-            console.warn('SoundManager: Error playing chip sound:', error);
-        }
+    playCardDealSound() {
+        this.cardDealSound.currentTime = 0;
+        this.cardDealSound.play().catch(error => {
+            console.warn("CLIENT: Could not play card deal sound:", error);
+        });
     }
 
-    /**
-     * Play a multiplier bonus sound effect.
-     */
-    playMultiplierSound() {
-        if (!this.isInitialized) return;
-
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.masterGain);
-            
-            // Higher pitched, more dramatic sound for multipliers
-            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
-            oscillator.type = 'sawtooth';
-            
-            const now = this.audioContext.currentTime;
-            const duration = 0.25;
-            
-            // Frequency sweep upward for excitement
-            oscillator.frequency.exponentialRampToValueAtTime(800, now + duration * 0.7);
-            
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.03);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
-            
-            oscillator.start(now);
-            oscillator.stop(now + duration);
-            
-        } catch (error) {
-            console.warn('SoundManager: Error playing multiplier sound:', error);
-        }
-    }
-
-    /**
-     * Play a turbo chip activation sound effect.
-     */
-    playTurboChipSound() {
-        if (!this.isInitialized) return;
-
-        try {
-            // Create a more complex sound with two oscillators for richness
-            const osc1 = this.audioContext.createOscillator();
-            const osc2 = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            osc1.connect(gainNode);
-            osc2.connect(gainNode);
-            gainNode.connect(this.masterGain);
-            
-            // Harmonic frequencies for a richer sound
-            osc1.frequency.setValueAtTime(300, this.audioContext.currentTime);
-            osc2.frequency.setValueAtTime(450, this.audioContext.currentTime); // Perfect fifth
-            
-            osc1.type = 'square';
-            osc2.type = 'triangle';
-            
-            const now = this.audioContext.currentTime;
-            const duration = 0.3;
-            
-            // Slight frequency modulation for "power-up" effect
-            osc1.frequency.exponentialRampToValueAtTime(600, now + duration * 0.5);
-            osc2.frequency.exponentialRampToValueAtTime(900, now + duration * 0.5);
-            
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.25, now + 0.05);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
-            
-            osc1.start(now);
-            osc2.start(now);
-            osc1.stop(now + duration);
-            osc2.stop(now + duration);
-            
-        } catch (error) {
-            console.warn('SoundManager: Error playing turbo chip sound:', error);
-        }
-    }
-
-    /**
-     * Calculate progress toward round target for pitch shifting.
-     * @param {number} currentScore - Current total score
-     * @param {number} targetScore - Target score for the round
-     * @returns {number} Progress from 0.0 to 1.0
-     */
-    calculateScoreProgress(currentScore, targetScore) {
-        if (!targetScore || targetScore <= 0) return 0;
-        return Math.min(Math.max(currentScore / targetScore, 0), 1);
-    }
-
-    /**
-     * Play a short, crisp UI button click sound.
-     */
     playButtonClickSound() {
-        if (!this.isInitialized) return;
-
-        try {
-            // Use a very short buffer of white noise for the click
-            const bufferSize = this.audioContext.sampleRate * 0.05; // 50ms duration
-            const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-            const output = buffer.getChannelData(0);
-
-            // Fill buffer with random values (white noise)
-            for (let i = 0; i < bufferSize; i++) {
-                output[i] = Math.random() * 2 - 1;
-            }
-
-            const source = this.audioContext.createBufferSource();
-            source.buffer = buffer;
-
-            // Create a sharp volume envelope to make it sound like a "click"
-            const gainNode = this.audioContext.createGain();
-            gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
-
-            source.connect(gainNode);
-            gainNode.connect(this.masterGain);
-            source.start(0);
-        } catch (error) {
-            console.warn('SoundManager: Error playing button click sound:', error);
-        }
+        // Use Web Audio API for a generated click sound
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
     }
 
-    /**
-     * Play a dice rolling sound for the shop reroll.
-     * This is done by playing a rapid succession of ticks that fall in pitch.
-     */
+    playCardClickSound() {
+        this.cardClickSound.currentTime = 0;
+        this.cardClickSound.play().catch(() => {});
+    }
+
+    playMultiplierSound() {
+        this.scoreMultSound.currentTime = 0;
+        this.scoreMultSound.play().catch(() => {});
+    }
+
+    playShopPurchaseSound() {
+        this.shopPurchaseSound.currentTime = 0;
+        this.shopPurchaseSound.play().catch(error => {
+            console.warn("CLIENT: Could not play shop purchase sound:", error);
+        });
+    }
+
+    playRoundCompleteSound() {
+        this.roundCompleteSound.currentTime = 0;
+        this.roundCompleteSound.play().catch(error => {
+            console.warn("CLIENT: Could not play round complete sound:", error);
+        });
+    }
+
     playRerollSound() {
-        if (!this.isInitialized) return;
+        // Create a custom reroll sound using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.2);
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+    }
 
-        try {
-            const now = this.audioContext.currentTime;
-            const tickCount = 5;
-            let totalDuration = 0;
+    playChipSound(progressPercentage = 0) {
+        // Adjust pitch based on progress percentage (0-1)
+        // Higher progress = higher pitch for more excitement
+        this.chipSound.currentTime = 0;
+        this.chipSound.playbackRate = 0.8 + (progressPercentage * 0.4); // Range from 0.8 to 1.2
+        this.chipSound.play().catch(() => {});
+    }
 
-            for (let i = 0; i < tickCount; i++) {
-                const startTime = now + totalDuration;
-                const duration = 0.05 + Math.random() * 0.03;
-                
-                const oscillator = this.audioContext.createOscillator();
-                const gainNode = this.audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(this.masterGain);
-                
-                // Pitch decreases with each "tumble"
-                const pitch = 800 - (60 * i * i);
-                oscillator.frequency.setValueAtTime(pitch + Math.random() * 50, startTime);
-                oscillator.type = 'square';
-                
-                // Volume also decreases
-                const volume = 0.3 * (1 - i / tickCount);
-                gainNode.gain.setValueAtTime(0, startTime);
-                gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-                
-                oscillator.start(startTime);
-                oscillator.stop(startTime + duration);
+    playTurboChipSound() {
+        this.turboChipSound.currentTime = 0;
+        this.turboChipSound.play().catch(() => {});
+    }
 
-                // Stagger start times to simulate tumbling
-                totalDuration += 0.04 + Math.random() * 0.06;
-            }
-        } catch (error) {
-            console.warn('SoundManager: Error playing reroll sound:', error);
-        }
+    calculateScoreProgress(currentScore, targetScore) {
+        return Math.min(1, Math.max(0, currentScore / targetScore));
     }
 }
 

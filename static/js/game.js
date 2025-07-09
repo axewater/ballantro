@@ -1,6 +1,7 @@
 // Removed splash screen DOMContentLoaded event listener and initializeGame function as they are now handled in main.js
 
 function logClientHand(label, handArray) {
+    // Helper function to log card hands in a readable format
     const handStr = handArray && Array.isArray(handArray) ? handArray.map(card => `${card.rank}${card.suit.charAt(0).toUpperCase()}`).join(', ') : 'N/A';
     console.log(`CLIENT: ${label} [${handStr}] (Count: ${handArray ? handArray.length : 0})`);
 }
@@ -16,260 +17,33 @@ class PokerGame {
         this.previewManager = new PreviewManager(this.apiClient, this.cardManager);
         this.scoringAnimationManager = new ScoringAnimationManager(this.previewManager, this.uiUpdater);
         this.soundManager = new SoundManager();
+        this.shopManager = new ShopManager(this);
+        this.bossManager = new BossManager(this);
+        this.eventManager = new EventManager(this);
         
         // Connect sound manager to scoring animation manager
         this.scoringAnimationManager.setSoundManager(this.soundManager);
         
-        // will hold the exact Card models the user played last
+        // Will hold the exact Card models the user played last
         this.lastPlayedCards = [];
-        this.currentShopCards = []; // To store details of cards currently in the shop
-        this.shopRequestInFlight = false;   //  ← new flag
-
-        // Sound for cards being dealt
-        this.cardDealSound = new Audio('/static/assets/sound/cards_dealt.mp3');
-        // Sounds for shop purchase and round completion
-        this.shopPurchaseSound = new Audio('/static/assets/sound/money_ching.mp3');
-        this.roundCompleteSound = new Audio('/static/assets/sound/end_round.mp3');
-        // ───── NEW: card-click & multiplier sounds ─────
-        this.cardClickSound  = new Audio('/static/assets/sound/card_click.mp3');
-        this.scoreMultSound  = new Audio('/static/assets/sound/score_mult.mp3');
-
-        /* ───── NEW: card-hover “flick” sound ───── */
-        this.cardHoverSound  = new Audio('/static/assets/sound/cards_flick.mp3');
-        /*  Global helpers so *any* module / element can trigger the hover sound.
-            The helper stops the current playback (if any) and restarts it,
-            so rapidly moving over many cards will retrigger the SFX cleanly. */
-        window.cardHoverSound      = this.cardHoverSound;
-        window.playCardHoverSound  = () => { const s = window.cardHoverSound; if(s){ s.pause(); s.currentTime = 0; s.play().catch(()=>{});} };
-        /* expose globally so other modules can play them without tight coupling */
-        window.cardClickSound  = this.cardClickSound;
-        window.scoreMultSound  = this.scoreMultSound;
 
         // Initialize event listeners and show startup screen
-        this.initializeEventListeners();
+        this.eventManager.initializeEventListeners();
         this.screenManager.showScreen('startup');
     }
 
-    initializeEventListeners() {
-        // Startup screen
-        document.getElementById('start-game-btn').addEventListener('click', () => this.startNewGame(false));
-        document.getElementById('start-debug-game-btn').addEventListener('click', () => this.startNewGame(true));
-        document.getElementById('debug-boss-btn').addEventListener('click', () => this.showBossSelection());
-        document.getElementById('highscores-btn').addEventListener('click', () => this.showHighscores());
-
-        // Game screen
-        document.getElementById('draw-cards-btn').addEventListener('click', () => this.drawCards());
-        document.getElementById('play-hand-btn').addEventListener('click', () => this.playHand());
-        document.getElementById('sort-rank-btn').addEventListener('click', () => this.sortCardsByRank());
-        document.getElementById('sort-suit-btn').addEventListener('click', () => this.sortCardsBySuit());
-        document.getElementById('show-payouts-btn').addEventListener('click', () => this.screenManager.showPayoutsModal());
-        document.getElementById('deck-info-panel').addEventListener('click', () => this.showRemainingDeckModal());
-
-        // Shop screen
-        document.getElementById('reroll-shop-btn').addEventListener('click', () => this.rerollShop());
-        document.getElementById('next-round-btn').addEventListener('click', () => this.proceedToNextRound());
-
-        // Victory screen
-        document.getElementById('save-score-btn').addEventListener('click', () => this.screenManager.showNameModal());
-        document.getElementById('play-again-btn').addEventListener('click', () => this.startNewGame());
-
-        // Game over screen
-        document.getElementById('save-game-over-score-btn').addEventListener('click', () => this.saveGameOverScore());
-        document.getElementById('try-again-btn').addEventListener('click', () => this.startNewGame());
-
-        // Highscores screen
-        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
-            this.screenManager.showScreen('startup');
-        });
-        
-        document.getElementById('back-from-boss-selection-btn').addEventListener('click', () => {
-            // When returning to main menu, set mainbackdrop.jpg background and hide starfield with fade
-            const background = document.querySelector('.background');
-            if (background) {
-                background.style.transition = 'background-image 0.5s ease';
-                background.style.backgroundImage = "url('/static/assets/images/mainbackdrop.jpg')";
-                background.style.backgroundSize = "cover";
-                background.style.backgroundPosition = "center";
-            }
-            const starfield = document.getElementById('starfield');
-            if (starfield) {
-                starfield.style.transition = 'opacity 0.5s ease';
-                starfield.style.opacity = "0";
-            }
-            this.screenManager.showScreen('startup');
-        });
-
-        // Name modal
-        document.getElementById('save-name-btn').addEventListener('click', () => this.saveVictoryScore());
-        document.getElementById('cancel-name-btn').addEventListener('click', () => this.screenManager.hideNameModal());
-
-        // Payouts modal
-        document.getElementById('close-payouts-btn').addEventListener('click', () => this.screenManager.hidePayoutsModal());
-
-        // Remaining Deck modal
-        document.getElementById('close-remaining-deck-btn').addEventListener('click', () => this.screenManager.hideRemainingDeckModal());
-        
-        // Enter key in name inputs
-        document.getElementById('player-name').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.saveGameOverScore();
-        });
-        document.getElementById('modal-player-name').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.saveVictoryScore();
-        });
-    }
-
     showBossSelection() {
-        // Initialize sound manager on first user interaction
-        this.soundManager.initialize();
-        
-        // Define all available bosses with their details
-        const bosses = [
-            {
-                type: "thief",
-                name: "The Thief",
-                emoji: "🥷",
-                description: "Every time you click draw or play, he steals 1 card from your deck (it disappears forever)."
-            },
-            {
-                type: "vampire",
-                name: "The Vampire",
-                emoji: "🧛",
-                description: "Heart cards don't score any points. Your romantic cards are powerless against this creature of the night."
-            },
-            {
-                type: "vip_only",
-                name: "VIP Only",
-                emoji: "🎩",
-                description: "Club cards don't score any points. This exclusive establishment doesn't recognize your club membership."
-            },
-            {
-                type: "frozen_ground",
-                name: "Frozen Ground",
-                emoji: "❄️",
-                description: "Spade cards don't score any points. The frozen earth makes digging impossible."
-            },
-            {
-                type: "blonde_vixen",
-                name: "Blonde Vixen",
-                emoji: "💎",
-                description: "Diamond cards don't score any points. She's already taken all the diamonds for herself."
-            },
-            {
-                type: "drunk",
-                name: "The Drunk",
-                emoji: "🍺",
-                description: "All scoring is reduced by 25%. His intoxication affects your concentration and performance."
-            },
-            {
-                type: "baron",
-                name: "The Baron",
-                emoji: "👑",
-                description: "Costs $5 to play any hand. This greedy noble demands payment for every action you take."
-            },
-            {
-                type: "death",
-                name: "Death",
-                emoji: "💀",
-                description: "Your hand size is reduced by 2 cards. The grim reaper limits your options in life and cards."
-            }
-        ];
-        
-        // Populate the boss list
-        const bossListContainer = document.getElementById('boss-list');
-        bossListContainer.innerHTML = '';
-        
-        bosses.forEach(boss => {
-            const bossCard = document.createElement('div');
-            bossCard.className = 'boss-card';
-            bossCard.innerHTML = `
-                <div class="boss-card-header">
-                    <div class="boss-emoji">${boss.emoji}</div>
-                    <h3 class="boss-name">${boss.name}</h3>
-                </div>
-                <p class="boss-description">${boss.description}</p>
-            `;
-            
-            // Add click handler to start boss fight
-            bossCard.addEventListener('click', () => {
-                this.startBossFight(boss);
-            });
-            
-            bossListContainer.appendChild(bossCard);
-        });
-        
-        // Show the boss selection screen
-        this.screenManager.showScreen('boss-selection');
+        this.bossManager.showBossSelection();
     }
 
     async startBossFight(selectedBoss) {
-        try {
-            // Clear any existing selection state before starting boss fight
-            this.cardManager.clearSelection();
-            
-            // Ensure the game state is properly set before any UI updates
-            const data = await this.apiClient.newGame(true); // Debug mode
-            if (data.success) {
-                console.log("CLIENT: New boss fight started. Initial game state received:", data.game_state);
-                
-                this.gameState.setGameState(data.game_state);
-                
-                // Reset card manager state completely
-                this.cardManager.clearSelection();
-                this.cardManager.resetMapping(this.gameState.getHand().length);
-                
-                // Force the game into boss round mode with the selected boss
-                this.gameState.gameState.is_boss_round = true;
-                this.gameState.gameState.active_boss = {
-                    type: selectedBoss.type,
-                    name: selectedBoss.name,
-                    description: selectedBoss.description
-                };
-                
-                // Set round to 3 (boss rounds are typically round 3, 6, 9, etc.)
-                this.gameState.gameState.current_round = 3;
-                this.gameState.gameState.round_target = 1250; // Round 3 target
-                
-                this.updateGameDisplay();
-                this.screenManager.showScreen('game');
-                this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-                this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType);
-                this.uiUpdater.updateDebugModeIndicator(this.gameState.isDebugging());
-                
-                // Force update button states and selection count
-                this.uiUpdater.updateButtonStates(this.gameState.gameState, 0);
-                this.uiUpdater.elements.selectionCount.textContent = 0;
-                
-                logClientHand("Boss fight initial hand dealt:", this.gameState.getHand());
-               
-                // Switch to game background
-                const background = document.querySelector('.background');
-                if (background) {
-                    background.style.transition = 'background-image 0.5s ease';
-                    background.style.backgroundImage = "";
-                }
-                
-                const starfield = document.getElementById('starfield');
-                if (starfield) {
-                    starfield.style.transition = 'opacity 0.5s ease';
-                    starfield.style.opacity = "1";
-                }
-
-                this.animateCardDraw();
-                
-                // Show boss notification
-                alert(`Boss Fight Started!\n\nFacing: ${selectedBoss.name}\n${selectedBoss.description}\n\nGood luck!`);
-            } else {
-                console.error('Failed to start boss fight:', data);
-            }
-        } catch (error) {
-            console.error('Error starting boss fight:', error);
-        }
+        this.bossManager.startBossFight(selectedBoss);
     }
 
     async startNewGame(debugMode = false) {
         if (this.cardManager.isSorting) return;
         
-        // Initialize sound manager on first user interaction
+        // Initialize sound manager
         this.soundManager.initialize();
         
         // Connect sound manager to scoring animation manager
@@ -304,7 +78,7 @@ class PokerGame {
                    starfield.style.opacity = "1";
                }
 
-                this.animateCardDraw();
+                this.animateCardDraw(); 
             } else {
                 console.error('Failed to start new game:', data);
             }
@@ -314,7 +88,7 @@ class PokerGame {
     }
 
     async drawCards() {
-        this._playButtonSound();
+        this.soundManager.playButtonClickSound();
         if (this.cardManager.isSorting) return;
         
         // Get selected cards ONCE to avoid race condition
@@ -379,7 +153,7 @@ class PokerGame {
     }
 
     async playHand() {
-        this._playButtonSound();
+        this.soundManager.playButtonClickSound();
         if (this.cardManager.isSorting) return;
         if (this.cardManager.getSelectedCount() < 1 || this.cardManager.getSelectedCount() > 5) {
             alert('Please select 1 to 5 cards to play.');
@@ -532,10 +306,7 @@ class PokerGame {
             // Check if round changed for transition animation
             if (this.gameState.isInShop()) {
                 // Play round complete sound as we are entering the shop
-                this.roundCompleteSound.currentTime = 0;
-                this.roundCompleteSound.play().catch(error => {
-                    console.warn("CLIENT: Could not play round complete sound:", error);
-                });
+                this.soundManager.playRoundCompleteSound();
                 // If we're in shop mode, show the shop screen
                 this.showShopScreen();
                 return;
@@ -605,7 +376,7 @@ class PokerGame {
     }
 
     async sortCardsByRank() {
-        this._playButtonSound();
+        this.soundManager.playButtonClickSound();
         logClientHand("Hand BEFORE sort by rank request:", this.gameState.getHand());
         // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsByRank(this.gameState.gameState, () => {
@@ -618,7 +389,7 @@ class PokerGame {
     }
 
     async sortCardsBySuit() {
-        this._playButtonSound();
+        this.soundManager.playButtonClickSound();
         logClientHand("Hand BEFORE sort by suit request:", this.gameState.getHand());
         // Pass uiUpdater to cardManager for updating button appearance
         await this.cardManager.sortCardsBySuit(this.gameState.gameState, () => {
@@ -634,10 +405,7 @@ class PokerGame {
         const cards = document.querySelectorAll('#player-hand .card');
         console.log("CLIENT: Animating card draw for", cards.length, "cards.");
         if (cards.length > 0) {
-            this.cardDealSound.currentTime = 0; // Rewind to start
-            this.cardDealSound.play().catch(error => {
-                console.warn("CLIENT: Could not play card deal sound:", error);
-            });
+            this.soundManager.playCardDealSound();
         }
         window.gameAnimations.queueAnimation(() => 
             window.gameAnimations.animateCardDeal(Array.from(cards))
@@ -645,305 +413,27 @@ class PokerGame {
     }
 
     async showShopScreen() {
-        try {
-            const data = await this.apiClient.getShopState(this.gameState.sessionId);
-            
-            if (data.success) {
-                this.updateShopDisplay(data.shop_state);
-                this.screenManager.showScreen('shop');
-            } else {
-                console.error('Failed to get shop state:', data);
-                alert('Could not load shop. Continuing to next round.');
-                this.proceedToNextRound();
-            }
-        } catch (error) {
-            console.error('Error fetching shop state:', error);
-            alert('Error loading shop. Continuing to next round.');
-            this.proceedToNextRound();
-        }
-    }
-
-    updateShopDisplay(shopState) {
-        // Update money display
-        document.getElementById('shop-money-display').textContent = `$${shopState.money}`;
-
-        // Store current shop cards for logging purposes
-        this.currentShopCards = shopState.shop_items ? [...shopState.shop_items] : [];
-        
-        // Clear existing shop cards
-        const shopCardsContainer = document.getElementById('shop-cards');
-        shopCardsContainer.innerHTML = '';
-        
-        // Add shop cards
-        shopState.shop_items.forEach((item,index)=>{
-            const cardElement = item.item_type==='card'
-                 ? this.createShopCardElement(item,index)
-                 : this.createTurboChipElement(item,index);
-            shopCardsContainer.appendChild(cardElement);
-        });
-        
-        // Update reroll button state
-        document.getElementById('reroll-shop-btn').disabled = shopState.money < shopState.reroll_cost;
-    }
-
-    createShopCardElement(card, index) {
-        const cardElement = document.createElement('div');
-        cardElement.className = `shop-card ${card.suit.toLowerCase()}`;
-        /* --- store current index as data-attr so we can re-index later --- */
-        cardElement.dataset.index = index;
-        
-        // Rank (Top)
-        const rankElement = document.createElement('div');
-        rankElement.className = 'card-rank'; // Uses .shop-card .card-rank for sizing
-        rankElement.textContent = card.rank;
-        
-        // Icon Area (Middle)
-        const iconArea = document.createElement('div');
-        iconArea.className = 'card-icon-area'; // Uses .card-icon-area styles
-
-        if (card.effects && card.effects.length > 0) {
-            card.effects.forEach(effectId => {
-                const effectInfo = window.EffectDescriptions && window.EffectDescriptions[effectId];
-                if (effectInfo) {
-                    let iconElement = null;
-                    if (effectId.startsWith('bonus_chips')) {
-                        iconElement = document.createElement('div');
-                        // Apply general card icon styles, shop-card context might override size if needed via specific CSS
-                        iconElement.className = 'card-bonus-chips-icon'; 
-                        iconElement.textContent = '✚';
-                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
-                    } else if (effectId.startsWith('bonus_multiplier')) {
-                        iconElement = document.createElement('div');
-                        iconElement.className = 'card-bonus-multiplier-icon';
-                        iconElement.textContent = '★';
-                        iconElement.dataset.tooltipText = `<strong>${effectInfo.name}</strong><br>${effectInfo.description}`;
-                    }
-
-                    if (iconElement) {
-                        iconElement.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(iconElement.dataset.tooltipText, event));
-                        iconElement.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
-                        iconElement.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
-                        iconArea.appendChild(iconElement);
-                    }
-                }
-            });
-        }
-
-        // Suit (Bottom)
-        const suitElement = document.createElement('div');
-        suitElement.className = 'card-suit'; // Uses .shop-card .card-suit for sizing
-        suitElement.textContent = this.cardManager.getSuitSymbol(card.suit);
-                
-        const priceElement = document.createElement('div');
-        priceElement.className = 'card-price';
-        priceElement.textContent = '$3';
-        
-        cardElement.appendChild(rankElement);
-        cardElement.appendChild(iconArea);
-        cardElement.appendChild(suitElement);
-        cardElement.appendChild(priceElement);
-
-        /* Hover sound */
-        cardElement.addEventListener('mouseenter', () => {
-            if (window.playCardHoverSound) window.playCardHoverSound();
-        });
-
-        /* -------------------------------------------------------------
-         * Click handler looks up the *live* dataset.index instead of
-         * using the original `index` captured in the closure.  This
-         * keeps client / server indices in sync after items are bought
-         * and removed from the shop array.
-         * ------------------------------------------------------------- */
-        cardElement.addEventListener('click', (e) =>
-            this.buyCard(
-                parseInt(e.currentTarget.dataset.index, 10),
-                e.currentTarget /* pass element for precise “sold” marking */
-            )
-        );
-        
-        return cardElement;
-    }
-
-    createTurboChipElement(chip,index){
-        const el=document.createElement('div');
-        el.className='shop-card turbo';
-        el.dataset.index = index;
-        /* Unique icon for each turbo chip */
-        const iconChar =
-            (window.TurboChipIcons && window.TurboChipIcons[chip.effect_id]) ||
-            '⚡';
-        el.innerHTML=`<div class="card-rank">${iconChar}</div>`; 
-        
-        // Store tooltip text in a data attribute
-        el.dataset.tooltipText = `<strong>${chip.name}</strong><br>${chip.description}`;
-
-        const price=document.createElement('div');
-        price.className='card-price';price.textContent='$1';
-        el.appendChild(price);
-        
-        el.addEventListener('click',(e)=>
-            this.buyCard(
-                parseInt(e.currentTarget.dataset.index,10),
-                e.currentTarget
-            )
-        );
-
-        // Add event listeners for tooltip
-        el.addEventListener('mouseover', (event) => window.tooltipManager.showTooltip(el.dataset.tooltipText, event));
-        el.addEventListener('mouseout', () => window.tooltipManager.hideTooltip());
-        el.addEventListener('mousemove', (event) => window.tooltipManager.updatePosition(event));
-        /* Hover sound */
-        el.addEventListener('mouseenter', () => {
-            if (window.playCardHoverSound) window.playCardHoverSound();
-        });
-
-        return el;
+        this.shopManager.showShopScreen();
     }
 
     async rerollShop() {
-        try {
-            const data = await this.apiClient.rerollShop(this.gameState.sessionId);
-            
-            if (data.success) {
-                // Play reroll sound
-                if (this.soundManager) {
-                    this.soundManager.playRerollSound();
-                }
-
-                // Update shop display with new cards
-                this.updateShopDisplay({
-                    shop_items: data.shop_items,
-                    money: data.money,
-                    reroll_cost: 1,
-                    card_cost: 3
-                });
-            } else {
-                console.error('Failed to reroll shop:', data);
-                alert(data.detail || 'Failed to reroll shop.');
-            }
-        } catch (error) {
-            console.error('Error rerolling shop:', error);
-            alert('Error rerolling shop.');
-        }
+        this.shopManager.rerollShop();
     }
 
     async buyCard(cardIndex, clickedElement = null) {
-        if (this.shopRequestInFlight) return;          // ignore double clicks
-        this.shopRequestInFlight = true;
-        document.getElementById('next-round-btn').disabled = true; // lock N-Round
-
-        // Get card details *before* the API call for logging, using the stored shop cards
-        const boughtCardDetails = this.currentShopCards && this.currentShopCards[cardIndex]
-                                  ? this.currentShopCards[cardIndex]
-                                  : null;
-
-        try {
-            const data = await this.apiClient.buyCard(this.gameState.sessionId, cardIndex);
-            
-            if (data.success) {
-                // Play shop purchase sound
-                this.shopPurchaseSound.currentTime = 0;
-                this.shopPurchaseSound.play().catch(error => {
-                    console.warn("CLIENT: Could not play shop purchase sound:", error);
-                });
-
-                // Update game state *first* so getDeckRemaining() is accurate for logging
-                // Update game state
-                this.gameState.setGameState(data.game_state);
-                
-                // Enhanced logging for purchase confirmation
-                if (boughtCardDetails) {
-                    const cardSuit = boughtCardDetails.suit ? (boughtCardDetails.suit.charAt(0).toUpperCase() + boughtCardDetails.suit.slice(1)) : "";
-                    const cardName = boughtCardDetails.item_type === "card"
-                        ? `${this.formatCardRank(boughtCardDetails.rank)} of ${cardSuit}`
-                        : boughtCardDetails.name;
-                    const deckCount = this.gameState.getDeckRemaining();
-                    console.log(`PURCHASE CONFIRMATION: Bought '${cardName}'. Added to deck. Total cards: ${deckCount}`);
-                } else {
-                    console.warn("Could not retrieve bought card details for logging purchase.");
-                }
-
-                // --- UI ► mark SOLD exactly on the clicked element (robust) ---
-                if (clickedElement) {
-                    clickedElement.classList.add('sold');
-                    clickedElement.style.pointerEvents = 'none';
-                }
-
-                const shopCardsContainer = document.getElementById('shop-cards');
-                const cardElements = shopCardsContainer.querySelectorAll('.shop-card');
-                
-                /* --------------------------------------------------
-                 * 🔄  Sync **client-side index mapping**:
-                 *  1. Remove the bought item from the cached array.
-                 *  2. Re-index remaining DOM elements so their
-                 *     dataset.index matches the server’s indices.
-                 * -------------------------------------------------- */
-                if (this.currentShopCards && this.currentShopCards.length > cardIndex) {
-                    this.currentShopCards.splice(cardIndex, 1);
-                }
-                const remainingEls =
-                    shopCardsContainer.querySelectorAll('.shop-card:not(.sold)');
-                remainingEls.forEach((el, newIdx) => {
-                    el.dataset.index = newIdx;
-                });
-                
-                // Update reroll button state
-                document.getElementById('reroll-shop-btn').disabled = this.gameState.getMoney() < 1;
-            } else {
-                console.error('Failed to buy card:', data);
-                alert(data.detail || 'Failed to buy card.');
-            }
-        } catch (error) {
-            console.error('Error buying card:', error);
-            alert('Error buying card.');
-        } finally {
-            this.shopRequestInFlight = false;
-            document.getElementById('next-round-btn').disabled = false; // unlock
-        }
+        this.shopManager.buyCard(cardIndex, clickedElement);
     }
 
     async proceedToNextRound() {
-        if (this.shopRequestInFlight) return;  // wait until purchase finishes
-        try {
-            const data = await this.apiClient.proceedToNextRound(this.gameState.sessionId);
-            
-            if (data.success) {
-                // Update game state
-                this.gameState.setGameState(data.game_state);
-                
-                // Animate round transition
-                window.gameAnimations.queueAnimation(() => 
-                    window.gameAnimations.animateRoundTransition(this.gameState.getCurrentRound())
-                ).then(() => {
-                    this.finalizeHandUpdateAndDisplay();
-                });
-            } else {
-                console.error('Failed to proceed to next round:', data);
-                alert(data.detail || 'Failed to proceed to next round.');
-            }
-        } catch (error) {
-            console.error('Error proceeding to next round:', error);
-            alert('Error proceeding to next round.');
-        }
+        this.shopManager.proceedToNextRound();
     }
 
     // Helper function to format card rank for display names
     formatCardRank(rank) {
         const rankMap = {
-            'A': 'Ace', 'K': 'King', 'Q': 'Queen', 'J': 'Jack',
-            '10': '10', '9': '9', '8': '8', '7': '7', '6': '6',
-            '5': '5', '4': '4', '3': '3', '2': '2'
+            'A': 'Ace', 'K': 'King', 'Q': 'Queen', 'J': 'Jack', '10': '10', 
+            '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2'
         };
         return rankMap[rank] || rank;
-    }
-
-    /* ------------------------------------------------------------- */
-    /*  Helper – universal button-click sound for main action buttons */
-    /* ------------------------------------------------------------- */
-    _playButtonSound() {
-        // Use the Web Audio API for a generated click sound
-        if (this.soundManager) {
-            this.soundManager.playButtonClickSound();
-        }
     }
 }
