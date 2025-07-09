@@ -23,6 +23,7 @@ class ScoringAnimationManager{
     /*  entry-point called by game.js  */
     async startScoringAnimation(playedCardsData, playedCardElements, handResult, onComplete){
         // Store which card indices actually contribute to scoring
+        const totalCards = playedCardsData.length;
         this.triggeredSet.clear();
         for(let i=0; i<playedCardsData.length; i++){
             if(playedCardsData[i].score > 0){
@@ -33,6 +34,7 @@ class ScoringAnimationManager{
         this._runningChips = 0;
         this._runningMult = 0;
 
+        let cardScoringIndex = 0; // Track progression for buzzing sound
         for(let i=0; i<playedCardsData.length; i++){
             const card = playedCardsData[i];
             const cardEl = playedCardElements[i];
@@ -42,12 +44,9 @@ class ScoringAnimationManager{
                 /* ▶ CHIP VALUE FLOAT */
                 const base = this._getBaseChipValueForCard(card);
                 
-                // Play chip sound with dynamic pitch based on score progress
+                // Play buzzing sound for each scoring card
                 if (this.soundManager) {
-                    const gameState = window.pokerGame?.gameState?.gameState;
-                    const progress = gameState ? 
-                        this.soundManager.calculateScoreProgress(gameState.total_score, gameState.round_target) : 0;
-                    this.soundManager.playChipSound(progress);
+                    this.soundManager.playCardScoringBuzz(cardScoringIndex, this.triggeredSet.size);
                 }
                 await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
                 this._runningChips += base;
@@ -56,12 +55,9 @@ class ScoringAnimationManager{
                 /* ▶ SPECIAL EFFECTS */
                 const bonusChips = this._getCardBonusChips(card);
                 if(bonusChips){
-                    // Play chip sound for bonus chips too
+                    // Play buzzing sound for bonus chips too
                     if (this.soundManager) {
-                        const gameState = window.pokerGame?.gameState?.gameState;
-                        const progress = gameState ? 
-                            this.soundManager.calculateScoreProgress(gameState.total_score, gameState.round_target) : 0;
-                        this.soundManager.playChipSound(progress);
+                        this.soundManager.playCardScoringBuzz(cardScoringIndex, this.triggeredSet.size);
                     }
                     if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusChips}`, 'blue', this.liveChipTotalEl);
                     this._runningChips += bonusChips;
@@ -79,6 +75,7 @@ class ScoringAnimationManager{
                     this._runningMult += bonusMult;
                     this.liveMultTotalEl.textContent = this._runningMult;
                 }
+                cardScoringIndex++; // Increment for next scoring card
             }
             await this._delay(this.animationDelayPerCard - 300);
         }

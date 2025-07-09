@@ -1,4 +1,4 @@
- class SoundManager {
+class SoundManager {
     constructor() {
         this.initialized = false;
         this.cardDealSound = new Audio('/static/assets/sound/cards_dealt.mp3');
@@ -100,6 +100,50 @@
         
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 0.2);
+    }
+
+    playCardScoringBuzz(cardIndex = 0, totalCards = 5) {
+        // Create buzzing sound with decreasing duration and increasing pitch
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        const filterNode = audioContext.createBiquadFilter();
+        
+        // Calculate progression: first card = longest/lowest, last card = shortest/highest
+        const progress = cardIndex / Math.max(1, totalCards - 1);
+        
+        // Base frequency starts at 150Hz, goes up to 800Hz
+        const baseFreq = 150 + (progress * 650);
+        
+        // Duration starts at 0.4s, goes down to 0.1s
+        const duration = 0.4 - (progress * 0.3);
+        
+        // Set up sawtooth wave for buzzy quality
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
+        
+        // Add slight frequency modulation for more electronic feel
+        oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 1.2, audioContext.currentTime + duration * 0.3);
+        oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 0.9, audioContext.currentTime + duration);
+        
+        // Filter for more electronic sound
+        filterNode.type = 'lowpass';
+        filterNode.frequency.setValueAtTime(1200, audioContext.currentTime);
+        filterNode.Q.setValueAtTime(2, audioContext.currentTime);
+        
+        // Volume envelope
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        // Connect the audio graph
+        oscillator.connect(filterNode);
+        filterNode.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Start and stop
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + duration);
     }
 
     playChipSound(progressPercentage = 0) {

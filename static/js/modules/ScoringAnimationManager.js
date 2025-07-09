@@ -187,6 +187,7 @@ class ScoringAnimationManager{
             const currentScore = startScore + ((endScore - startScore) * chipProgress);
             return this.soundManager.calculateScoreProgress(currentScore, roundTarget);
         };
+        let cardScoringIndex = 0;
         for(let i=0;i<cards.length;i++){
             const card = cards[i];
             const cardEl = this.cardRow.children[i];
@@ -212,7 +213,7 @@ class ScoringAnimationManager{
                 /* ▶ CHIP VALUE FLOAT */
                 const base = this._getBaseChipValueForCard(card);
                 if (this.soundManager && base > 0) {
-                    this.soundManager.playChipSound(calculatePitchProgress(base));
+                    this.soundManager.playCardScoringBuzz(cardScoringIndex, this.triggeredSet.size);
                 }
                 await this._spawnFloatingNum(cardEl,`+${base}`, 'blue', this.liveChipTotalEl);
                 this._runningChips += base;
@@ -228,7 +229,7 @@ class ScoringAnimationManager{
                 const bonusChips = this._getCardBonusChips(card);
                 if(bonusChips){
                     if (this.soundManager) {
-                        this.soundManager.playChipSound(calculatePitchProgress(bonusChips));
+                        this.soundManager.playCardScoringBuzz(cardScoringIndex, this.triggeredSet.size);
                     }
                     if (cardEl) await this._spawnFloatingNum(cardEl,`+${bonusChips}`, 'blue', this.liveChipTotalEl);
                     this._runningChips += bonusChips;
@@ -243,6 +244,7 @@ class ScoringAnimationManager{
                     this._runningMult += bonusMult;
                     this.liveMultTotalEl.textContent = this._runningMult;
                 }
+                cardScoringIndex++;
             }
             await this._delay(this.animationDelayPerCard - 300);
         }
