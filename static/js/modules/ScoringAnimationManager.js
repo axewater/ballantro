@@ -19,11 +19,10 @@ class ScoringAnimationManager{
         this.liveFinalTotalEl      = document.getElementById('live-final-total');
 
         /* misc */
-        this.animationDelayPerCard = 69; // ms
+        this.animationDelayPerCard = 150; // ms - reduced from 800ms
         this.isAnimating = false;
         this.triggeredSet = new Set(); // indices of cards that actually score
         this._suitMultiplierBonuses = {}; // Track multiplier bonuses per suit
-        this.animationDelayPerCard = 800;
         this._runningChips = 0;
         this._runningMult = 0;
         this._turboMultBonus = 0;  // NEW: Track turbo chip multiplier bonuses
@@ -69,7 +68,7 @@ class ScoringAnimationManager{
             this._resetScoringArea();
             this.isAnimating=false;
             onComplete && onComplete();
-        },1200);
+        },600);
     }
 
     /* ──────────  internal helpers  ────────── */
@@ -201,11 +200,11 @@ class ScoringAnimationManager{
             }
             cardEl.classList.add('card-shaking');
             /* slight zoom-out after shake finishes */
-            await this._delay(150);
+            await this._delay(50);
             cardEl.classList.remove('card-shaking');
             cardEl.style.transition='transform .15s';
             cardEl.style.transform='scale(0.97)';
-            await this._delay(80);
+            await this._delay(30);
             cardEl.style.transform='scale(1)';
 
             if(isTriggered){
@@ -246,7 +245,7 @@ class ScoringAnimationManager{
                 }
                 cardScoringIndex++;
             }
-            await this._delay(this.animationDelayPerCard - 300);
+            await this._delay(this.animationDelayPerCard - 100);
         }
     }
 
@@ -296,12 +295,12 @@ class ScoringAnimationManager{
             if (this.soundManager) {
                 this.soundManager.playTurboChipSound();
             }
-            await this._delay(150);
+            await this._delay(50);
             chipEl.classList.remove('flash');
         }
         /* inventory effects are already included by backend in total_score;
            we just add a small pause so flash is visible. */
-        await this._delay(400);
+        await this._delay(100);
     }
 
     // Create a visual connection between a turbo chip and a card
@@ -353,7 +352,7 @@ class ScoringAnimationManager{
         const start     = this._runningChips * this._runningMult;
         const targetVal = this._finalTarget;
         const el        = this.liveFinalTotalEl;
-        const duration  = 1000;
+        const duration  = 500;
         const t0=performance.now();
         const step = (t)=>{
             const p=Math.min((t-t0)/duration,1);
@@ -362,7 +361,7 @@ class ScoringAnimationManager{
             if(p<1) requestAnimationFrame(step);
         };
         requestAnimationFrame(step);
-        await this._delay(duration+50);
+        await this._delay(duration+25);
 
         /* ✨ pop effect on final total */
         this.liveFinalTotalEl.classList.add('final-total-pop');
@@ -434,7 +433,7 @@ class ScoringAnimationManager{
 
             /* force reflow then animate to target */
             requestAnimationFrame(()=>{
-                span.style.transition = 'transform .8s ease-out, opacity .8s ease-out';
+                span.style.transition = 'transform .4s ease-out, opacity .4s ease-out';
                 span.style.transform  = `translate(${tgt.left - rect.left}px, ${tgt.top - rect.top}px)`;
                 span.style.opacity='0';
             });
@@ -442,7 +441,7 @@ class ScoringAnimationManager{
             setTimeout(()=>{
                 span.remove();
                 resolve();
-            },800);
+            },400);
         });
     }
 }
