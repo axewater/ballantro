@@ -133,6 +133,8 @@ class CardManager {
         // Play click sound
         this._playCardClickSound();
         
+        // Call the selection change callback to update button states
+        onSelectionChange && onSelectionChange(this.selectedCards);
     }
 
     _playCardClickSound() {
