@@ -10,9 +10,9 @@ class ScoringAnimationManager{
         this.previewModeContent    = document.getElementById('preview-mode-content');
         this.scoringModeContent    = document.getElementById('scoring-mode-content');
         this.previewDescription    = document.getElementById('preview-description');
+        this.scoringArea           = document.getElementById('scoring-area');
 
         /* NEW scoring-area elements */
-        this.scoringArea           = document.getElementById('scoring-area');
         this.cardRow               = document.getElementById('scoring-card-row');
         this.liveChipTotalEl       = document.getElementById('live-chip-total');
         this.liveMultTotalEl       = document.getElementById('live-mult-total');
@@ -279,6 +279,8 @@ class ScoringAnimationManager{
                 // Animate the connection for each card
                 for (const cardEl of triggeredCards) {
                     this._animateConnection(chipEl, cardEl);
+                    // Spawn floating number on each card hit by laser
+                    await this._spawnFloatingNum(cardEl, `+3`, 'red', this.liveMultTotalEl);
                     await this._delay(100);
                 }
                 
@@ -420,28 +422,34 @@ class ScoringAnimationManager{
     _spawnFloatingNum(originEl,text,colour,targetEl){
         return new Promise(resolve=>{
             const rect = originEl.getBoundingClientRect();
-            const tgt  = targetEl.getBoundingClientRect();
 
             const span = document.createElement('span');
             span.className=`floating-num ${colour==='red'?'red':'blue'}`;
             span.textContent=text;
-            document.body.appendChild(span);
+            document.body.appendChild(span); // Use body for fixed positioning
 
-            /* start @ card centre */
-            span.style.left = `${rect.left + rect.width/2}px`;
-            span.style.top  = `${rect.top  + rect.height/2}px`;
+            /* Position at center of card */
+            const startLeft = rect.left + rect.width / 2;
+            const startTop = rect.top + rect.height / 2;
+            span.style.left = `${startLeft}px`;
+            span.style.top = `${startTop}px`;
+            span.style.transform = 'translate(-50%, -50%)'; // Center the text
 
-            /* force reflow then animate to target */
+            /* Force reflow to ensure initial position is applied */
+            void span.offsetWidth;
+            
+            /* Animate with swirling motion */
             requestAnimationFrame(()=>{
-                span.style.transition = 'transform .4s ease-out, opacity .4s ease-out';
-                span.style.transform  = `translate(${tgt.left - rect.left}px, ${tgt.top - rect.top}px)`;
-                span.style.opacity='0';
+                span.style.transition = 'transform 1.2s ease-out, opacity 1.2s ease-out';
+                const swirl = Math.random() * 60 - 30; // Random swirl -30 to +30px
+                span.style.transform = `translate(calc(-50% + ${swirl}px), calc(-50% - 100px))`;
+                span.style.opacity = '0';
             });
-
+            
             setTimeout(()=>{
                 span.remove();
                 resolve();
-            },400);
+            }, 1200);
         });
     }
 }

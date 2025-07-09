@@ -269,10 +269,16 @@
 
 .floating-num{
     position:fixed;
-    font-weight:700;
+    font-size: 2rem;
+    font-weight: 900;
     pointer-events:none;
     z-index:3000;
-    animation:floatToTarget .8s forwards ease-out;
+    opacity: 1;
+    transform: translate(0, 0);
+    transition: transform 1.2s ease-out, opacity 1.2s ease-out;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+    text-stroke: 1px rgba(0, 0, 0, 0.5);
 }
 .floating-num.blue{color:#4facfe;}
 .floating-num.red{color:#e74c3c;}
@@ -298,8 +304,3 @@
     animation: turboActivate 0.8s ease-out;
 }
 
-/* Floating number animations for scoring */
-.floating-num {
-    position: fixed;
-    opacity: 0;
-}
