@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from backend.game_engine import GameEngine
 from backend.models import GameAction, GameState, Card, SaveScoreRequest
 
-app = FastAPI(title="Poker Game", description="Single-player poker card game")
+app = FastAPI(title="Ballantro", description="Single-player poker card game")
 
 # Configure basic logging for the FastAPI app if not already done by game_engine
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - SERVER API: %(levelname)s - %(message)s')
