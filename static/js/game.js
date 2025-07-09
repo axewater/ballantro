@@ -379,7 +379,7 @@ class PokerGame {
 
     handleCardClick(index, cardElement) {
         this.cardManager.toggleCardSelection(index, cardElement, (selectedCards) => {
-            this.uiUpdater.updateButtonStates(this.gameState.gameState, selectedCards.size);
+            this.uiUpdater.updateButtonStates(this.gameState.gameState, this.cardManager.getSelectedCount());
             this.uiUpdater.elements.selectionCount.textContent = selectedCards.size;
             this.previewManager.updateLivePreview(selectedCards, this.gameState.gameState);
             logClientHand("Hand after card click (selection changed):", this.gameState.getHand());
@@ -536,7 +536,7 @@ class PokerGame {
                 e.preventDefault();
                 
                 this.cardManager.endRightClickDrag((selectedCards) => {
-                    this.uiUpdater.updateButtonStates(this.gameState.gameState, selectedCards.size);
+                    this.uiUpdater.updateButtonStates(this.gameState.gameState, this.cardManager.getSelectedCount());
                     this.uiUpdater.elements.selectionCount.textContent = selectedCards.size;
                     this.previewManager.updateLivePreview(selectedCards, this.gameState.gameState);
                 });

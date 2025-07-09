@@ -537,6 +537,17 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
+/* Shop deck info positioning */
+.shop-deck-info {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.shop-deck-info .deck-panel {
+    padding: 15px 20px;
+}
+
 /* Boss Selection Screen */
 .boss-selection-panel { /* Extends .glass-panel */
     padding: 40px;

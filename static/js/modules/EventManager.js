@@ -25,6 +25,7 @@ class EventManager {
         // Shop screen
         document.getElementById('reroll-shop-btn').addEventListener('click', () => this.game.shopManager.rerollShop());
         document.getElementById('next-round-btn').addEventListener('click', () => this.game.shopManager.proceedToNextRound());
+        document.getElementById('shop-deck-info-panel').addEventListener('click', () => this.game.showRemainingDeckModal());
 
         // Victory screen
         document.getElementById('save-score-btn').addEventListener('click', () => this.game.screenManager.showNameModal());
