@@ -104,6 +104,11 @@ class CardManager {
         cardElement.addEventListener('mouseenter', () => {
             if (window.playCardHoverSound) window.playCardHoverSound();
         });
+
+        // Set initial animation state for card entrance
+        cardElement.style.opacity = '0';
+        cardElement.style.transform = 'translateX(300px) scale(0.8) rotate(45deg)';
+
         return cardElement;
     }
 

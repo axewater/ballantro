@@ -37,19 +37,20 @@ class GameAnimations {
         return new Promise((resolve) => {
             cards.forEach((card, index) => {
                 setTimeout(() => {
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateY(-50px) scale(0.8) rotateY(180deg)';
-                    card.style.transition = 'all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-                    
-                    // Trigger animation
+                    // Cards already have initial state from createCardElement()
+                    card.style.transition = 'all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+                    // Trigger animation on next frame to ensure initial state is rendered
                     requestAnimationFrame(() => {
-                        card.style.opacity = '1';
-                        card.style.transform = 'translateY(0) scale(1) rotateY(0deg)';
+                        requestAnimationFrame(() => {
+                            card.style.opacity = '1';
+                            card.style.transform = 'translateX(0) scale(1) rotate(0deg)';
+                        });
                     });
-                    
+
                     // Resolve when last card is dealt
                     if (index === cards.length - 1) {
-                        setTimeout(resolve, 600);
+                        setTimeout(resolve, 700);
                     }
                 }, index * delay);
             });

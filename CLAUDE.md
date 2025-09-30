@@ -5,9 +5,6 @@ Version 0.5
 ## Overview
 A single-player poker card game built with FastAPI backend and vanilla JavaScript frontend, featuring exact hand verification, scoring mechanisms, and comprehensive animations throughout the gameplay experience.
 
-## Live Game
-🎮 **Play Now:** https://8000-icer0v8rd471ny3j9x6mw-7f82ab50.manusvm.computer
-
 ## Features Implemented
 
 ### ✅ Core Game Mechanics
@@ -99,23 +96,6 @@ poker_game/
 │       └── animations.js  # Advanced animations
 ```
 
-## Game Controls
-
-### Card Selection
-- **Click cards** to select/deselect them
-- **Visual feedback** with glow and lift effects
-- **Selection counter** shows number of cards selected
-
-### Actions
-- **Draw Cards:** Discard selected cards and draw new ones (requires 1+ cards selected)
-- **Play Hand:** Submit exactly 5 cards for scoring
-- **Continue:** Proceed after viewing hand results
-
-### Navigation
-- **Start Game:** Begin a new game session
-- **Highscores:** View top 10 scores
-- **Back to Menu:** Return to main menu
-
 ## Scoring Examples
 
 ### High-Value Hands
@@ -128,15 +108,3 @@ poker_game/
 - **Look for pairs** early to build toward stronger hands
 - **Use draws wisely** - you only get 3 per round
 - **Calculate target scores** - you need increasingly higher scores each round
-
-## Testing Verification
-
-All poker hand combinations and scoring calculations have been thoroughly tested:
-- ✅ Card chip values (Ace=11, Face=10, Numbers=face value)
-- ✅ All 9 poker hand types correctly identified
-- ✅ Special cases (low ace straights, high ace straights)
-- ✅ Exact scoring formula implementation
-- ✅ Example verification (AAAKK = 721 points)
-
-
-
