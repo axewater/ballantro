@@ -6,6 +6,7 @@ class SoundManager {
         this.cardClickSound = new Audio('/static/assets/sound/card_click.mp3');
         this.scoreMultSound = new Audio('/static/assets/sound/score_mult.mp3');
         this.cardHoverSound = new Audio('/static/assets/sound/cards_flick.mp3');
+        this.cardSingleFlickSound = new Audio('/static/assets/sound/card_single_flick.mp3');
         this.shopPurchaseSound = new Audio('/static/assets/sound/money_ching.mp3');
         this.roundCompleteSound = new Audio('/static/assets/sound/end_round.mp3');
         this.chipSound = new Audio('/static/assets/sound/money_ching.mp3');
@@ -40,11 +41,11 @@ class SoundManager {
 
     updateVolumes() {
         if (!this.settingsManager) return;
-        
+
         const volume = this.settingsManager.getSetting('soundVolume');
-        [this.cardDealSound, this.cardClickSound, this.scoreMultSound, 
-         this.cardHoverSound, this.shopPurchaseSound, this.roundCompleteSound,
-         this.chipSound, this.turboChipSound].forEach(audio => {
+        [this.cardDealSound, this.cardClickSound, this.scoreMultSound,
+         this.cardHoverSound, this.cardSingleFlickSound, this.shopPurchaseSound,
+         this.roundCompleteSound, this.chipSound, this.turboChipSound].forEach(audio => {
             audio.volume = volume;
         });
     }
@@ -53,6 +54,15 @@ class SoundManager {
         this.cardDealSound.currentTime = 0;
         this.cardDealSound.play().catch(error => {
             console.warn("CLIENT: Could not play card deal sound:", error);
+        });
+    }
+
+    playCardSingleFlickSound() {
+        // Clone the audio to allow overlapping plays
+        const sound = this.cardSingleFlickSound.cloneNode();
+        sound.volume = this.cardSingleFlickSound.volume;
+        sound.play().catch(error => {
+            console.warn("CLIENT: Could not play card single flick sound:", error);
         });
     }
 

@@ -37,6 +37,11 @@ class GameAnimations {
         return new Promise((resolve) => {
             cards.forEach((card, index) => {
                 setTimeout(() => {
+                    // Play single card flick sound for each card
+                    if (window.pokerGame && window.pokerGame.soundManager) {
+                        window.pokerGame.soundManager.playCardSingleFlickSound();
+                    }
+
                     // Cards already have initial state from createCardElement()
                     card.style.transition = 'all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)';
 

@@ -258,8 +258,8 @@ class PokerGame {
                 });
 
                 // Animate new cards flying in
+                // Note: Sound is now played individually for each card in animateCardDeal
                 if (newCardElements.length > 0) {
-                    this.soundManager.playCardDealSound();
                     window.gameAnimations.queueAnimation(() =>
                         window.gameAnimations.animateCardDeal(newCardElements)
                     );
