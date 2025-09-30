@@ -5,6 +5,7 @@ class CardDragManager {
 
         // Drag state
         this.isDragging = false;
+        this.isPendingDrag = false; // Mouse down but not dragging yet
         this.draggedIndex = null;
         this.draggedElement = null;
         this.dragPreview = null;
@@ -14,9 +15,14 @@ class CardDragManager {
         // Mouse tracking for smooth animation
         this.mouseX = 0;
         this.mouseY = 0;
+        this.mouseDownX = 0; // Initial position when mouse pressed
+        this.mouseDownY = 0;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.velocityX = 0;
+
+        // Drag threshold - minimum pixels to move before starting drag
+        this.DRAG_THRESHOLD = 5;
 
         // Hysteresis for hover index (prevents rapid flicking)
         this.lastHoverChangeX = null;
@@ -65,10 +71,14 @@ class CardDragManager {
 
         if (!cardElement || !cardElement.dataset.index) return;
 
-        // Prevent default to avoid text selection
-        e.preventDefault();
+        // Store initial position and enter pending drag state
+        this.mouseDownX = e.clientX;
+        this.mouseDownY = e.clientY;
+        this.isPendingDrag = true;
+        this.draggedIndex = parseInt(cardElement.dataset.index, 10);
+        this.draggedElement = cardElement;
 
-        this.startDrag(cardElement, e.clientX, e.clientY);
+        // Don't prevent default yet - let click events work if we don't drag
     }
 
     handleTouchStart(e) {
@@ -178,6 +188,21 @@ class CardDragManager {
     }
 
     handleMouseMove(e) {
+        // Check if we should start dragging
+        if (this.isPendingDrag && !this.isDragging) {
+            const deltaX = e.clientX - this.mouseDownX;
+            const deltaY = e.clientY - this.mouseDownY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            // Start drag if moved beyond threshold
+            if (distance > this.DRAG_THRESHOLD) {
+                e.preventDefault();
+                this.isPendingDrag = false;
+                this.startDrag(this.draggedElement, e.clientX, e.clientY);
+            }
+            return;
+        }
+
         if (!this.isDragging) return;
         e.preventDefault();
 
@@ -340,6 +365,15 @@ class CardDragManager {
     }
 
     handleMouseUp(e) {
+        // If we were pending but never dragged, just reset state
+        // This allows the click event to fire normally
+        if (this.isPendingDrag && !this.isDragging) {
+            this.isPendingDrag = false;
+            this.draggedIndex = null;
+            this.draggedElement = null;
+            return;
+        }
+
         if (!this.isDragging) return;
         this.endDrag();
     }
@@ -412,10 +446,8 @@ class CardDragManager {
         // Brief flash effect on dropped card
         await this.animateDrop();
 
-        // Update CardManager mapping
-        this.cardManager.visualToLogical = newVisualToLogical;
-
         // Update selected cards set to use new visual indices
+        // IMPORTANT: Do this BEFORE updating visualToLogical, so we can use the OLD mapping
         const newSelectedCards = new Set();
         this.cardManager.selectedCards.forEach(oldVisualIndex => {
             const backendIndex = this.cardManager.visualToLogical[oldVisualIndex];
@@ -425,6 +457,9 @@ class CardDragManager {
             }
         });
         this.cardManager.selectedCards = newSelectedCards;
+
+        // Update CardManager mapping (do this AFTER calculating new selection)
+        this.cardManager.visualToLogical = newVisualToLogical;
 
         // Reorder DOM elements (instant, no animation)
         this.container.replaceChildren(...newOrder);
@@ -519,12 +554,15 @@ class CardDragManager {
 
         // Reset state
         this.isDragging = false;
+        this.isPendingDrag = false;
         this.draggedIndex = null;
         this.draggedElement = null;
         this.dragPreview = null;
         this.dropZoneIndicator = null;
         this.hoverIndex = null;
         this.lastHoverChangeX = null;
+        this.mouseDownX = 0;
+        this.mouseDownY = 0;
         this.cardPositions = [];
     }
 
