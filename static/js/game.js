@@ -102,7 +102,7 @@ class PokerGame {
     async drawCards() {
         this.soundManager.playButtonClickSound();
         if (this.cardManager.isSorting) return;
-        
+
         // Get selected cards ONCE to avoid race condition
         const selectedCards = this.cardManager.getSelectedCards();
         const selectedCount = selectedCards.length;
@@ -127,6 +127,27 @@ class PokerGame {
         logClientHand("Hand BEFORE draw request:", this.gameState.getHand());
         console.log("CLIENT: Selected card indices for discard:", selectedCards);
 
+        // Capture the selected card DOM elements before they're removed
+        const playerHandContainer = document.getElementById('player-hand');
+        const selectedVisualIndices = Array.from(this.cardManager.selectedCards);
+        const selectedCardElements = selectedVisualIndices.map(visualIndex => {
+            return playerHandContainer.querySelector(`.card[data-index="${visualIndex}"]`);
+        }).filter(el => el); // Filter out any nulls
+
+        // Capture the cards that are STAYING (not being discarded) by their identity
+        const currentHand = this.gameState.getHand();
+        const stayingCards = currentHand
+            .map((card, index) => ({ card, index }))
+            .filter(({ index }) => !selectedVisualIndices.includes(index))
+            .map(({ card }) => `${card.rank}-${card.suit}`); // Create unique identifier
+
+        console.log("CLIENT: Cards staying in hand:", stayingCards);
+
+        // Animate the selected cards flying out to the right
+        await window.gameAnimations.queueAnimation(() =>
+            window.gameAnimations.animateCardDiscard(selectedCardElements)
+        );
+
         try {
             const data = await this.apiClient.drawCards(
                 this.gameState.sessionId,
@@ -137,7 +158,7 @@ class PokerGame {
                 this.gameState.setGameState(data.game_state);
                 this.cardManager.resetMapping(this.gameState.getHand().length); // fresh mapping after draw
                 this.cardManager.clearSelection();
-                
+
                 /* ----------------------------------------------------------
                  * IMPORTANT: Render the NEW hand to the DOM *before* we try
                  * to apply any active sort.  The old flow attempted to run
@@ -146,15 +167,42 @@ class PokerGame {
                  * ---------------------------------------------------------- */
                 this.updateGameDisplay(); // renders raw, unsorted hand
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
-        
+
                 // Now (optionally) apply the active sort on the freshly drawn hand
                 logClientHand("Hand AFTER draw response (pre-sort DOM ready):", this.gameState.getHand());
                 await this.cardManager.applyActiveSort(this.gameState.gameState, () => {
                     this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 });
-                // Finally animate the arrival of the (sorted) new cards
-                this.animateCardDraw();
- 
+
+                // Identify which cards in the new DOM are the staying cards vs new cards
+                const newHand = this.gameState.getHand();
+                const allCardElements = document.querySelectorAll('#player-hand .card');
+                const newCardElements = [];
+
+                allCardElements.forEach((cardElement, index) => {
+                    const card = newHand[index];
+                    const cardId = `${card.rank}-${card.suit}`;
+
+                    if (stayingCards.includes(cardId)) {
+                        // This card was already in the hand - make it appear instantly without animation
+                        cardElement.style.opacity = '1';
+                        cardElement.style.transform = 'translateX(0) scale(1) rotate(0deg)';
+                        console.log(`CLIENT: Card ${cardId} is staying, skipping animation`);
+                    } else {
+                        // This is a new card - it should animate in
+                        newCardElements.push(cardElement);
+                        console.log(`CLIENT: Card ${cardId} is new, will animate`);
+                    }
+                });
+
+                // Only animate the new cards flying in
+                if (newCardElements.length > 0) {
+                    this.soundManager.playCardDealSound();
+                    window.gameAnimations.queueAnimation(() =>
+                        window.gameAnimations.animateCardDeal(newCardElements)
+                    );
+                }
+
             } else {
                 console.error('Failed to draw cards:', data);
                 alert(data.message || 'Failed to draw cards.');

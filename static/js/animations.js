@@ -57,6 +57,36 @@ class GameAnimations {
         });
     }
 
+    // Card discard animation - cards fly out to the right with a swing
+    animateCardDiscard(cardElements, delay = 80) {
+        return new Promise((resolve) => {
+            if (!cardElements || cardElements.length === 0) {
+                resolve();
+                return;
+            }
+
+            cardElements.forEach((card, index) => {
+                setTimeout(() => {
+                    // Apply the discard animation with swing effect
+                    card.style.transition = 'all 0.6s cubic-bezier(0.6, 0.04, 0.98, 0.335)';
+
+                    // Fly out to the right with an arc and rotation
+                    const randomRotation = 15 + Math.random() * 20; // 15-35 degrees
+                    const randomDistance = 600 + Math.random() * 200; // 600-800px
+                    const arcHeight = -50 - Math.random() * 50; // -50 to -100px arc upward
+
+                    card.style.transform = `translateX(${randomDistance}px) translateY(${arcHeight}px) rotate(${randomRotation}deg) scale(0.8)`;
+                    card.style.opacity = '0';
+
+                    // Resolve when last card completes its animation
+                    if (index === cardElements.length - 1) {
+                        setTimeout(resolve, 600);
+                    }
+                }, index * delay);
+            });
+        });
+    }
+
     // Card selection animation with enhanced effects
     animateCardSelection(card, isSelected) {
         // The CardManager has already added/removed the '.selected' class.

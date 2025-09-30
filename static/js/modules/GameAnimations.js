@@ -9,6 +9,7 @@ window.gameAnimations = {
         return this.queue;
     },
     animateCardDeal:   async ()=>{},   // existing no-ops kept
+    animateCardDiscard: async ()=>{},  // card discard animation stub
     animateRoundTransition:async ()=>{},
     animateCardSelection(cardElement, isSelected) {
         // Selection state is now handled purely by CSS classes
