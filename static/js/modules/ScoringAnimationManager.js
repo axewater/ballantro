@@ -258,6 +258,47 @@ class ScoringAnimationManager{
                     this._runningMult += bonusMult;
                     this.liveMultTotalEl.textContent = this._runningMult;
                 }
+
+                /* ▶ MONEY BONUS EFFECTS */
+                const moneyBonus = this._getCardMoneyBonus(card);
+                if(moneyBonus > 0){
+                    // Flash the card's money icon if present
+                    const moneyIcon = cardEl.querySelector('.card-bonus-money-icon');
+                    if(moneyIcon){
+                        moneyIcon.classList.add('money-icon-flash');
+                        setTimeout(() => moneyIcon.classList.remove('money-icon-flash'), this._delayWithSpeed(400));
+                    }
+
+                    // Spawn floating money to player money display
+                    const moneyDisplay = document.getElementById('player-money');
+                    if(cardEl && moneyDisplay) {
+                        await this._spawnFloatingNum(cardEl, `+$${moneyBonus}`, 'green', moneyDisplay);
+                        // Flash the money display
+                        moneyDisplay.classList.add('money-bonus-flash');
+                        setTimeout(() => moneyDisplay.classList.remove('money-bonus-flash'), this._delayWithSpeed(500));
+                    }
+                    if (this.soundManager) {
+                        this.soundManager.playCardScoringBuzz(cardScoringIndex, this.triggeredSet.size);
+                    }
+                }
+
+                /* ▶ RANDOM EFFECT RESOLUTION */
+                const randomEffect = this._getRandomEffectOutcome(card);
+                if(randomEffect){
+                    const mysteryIcon = cardEl.querySelector('.card-bonus-random-icon');
+                    if(mysteryIcon){
+                        // Flash the mystery icon with outcome color
+                        mysteryIcon.classList.add('mystery-reveal', `mystery-${randomEffect.type}`);
+                        mysteryIcon.textContent = randomEffect.icon;
+                        await this._delay(this._delayWithSpeed(300));
+                        mysteryIcon.classList.remove('mystery-reveal', `mystery-${randomEffect.type}`);
+                        mysteryIcon.textContent = '?'; // Reset to mystery icon
+                    }
+                    // The actual bonus was already applied above (chips/mult/money)
+                    // but we add a visual popup showing what was revealed
+                    await this._spawnMysteryReveal(cardEl, randomEffect.text);
+                }
+
                 cardScoringIndex++;
             }
             await this._delay(this._delayWithSpeed(this.baseAnimationDelayPerCard - 100));
@@ -415,8 +456,9 @@ class ScoringAnimationManager{
     /* ----------  NEW HELPERS : client-side bonus resolution  ---------- */
     _getCardBonusChips(card){
         if(!card || !Array.isArray(card.effects)) return 0;
+        // Don't include random effect chips here - handled separately
         return card.effects
-            .filter(eff=>eff.startsWith('bonus_chips_'))
+            .filter(eff=>eff.startsWith('bonus_chips_') && eff !== 'bonus_random')
             .reduce((sum,eff)=>{
                 const val=parseInt(eff.split('_').pop(),10);
                 return sum + (isNaN(val)?0:val);
@@ -425,23 +467,100 @@ class ScoringAnimationManager{
 
     _getCardBonusMultiplier(card){
         if(!card || !Array.isArray(card.effects)) return 0;
+        // Don't include random effect multipliers here - handled separately
         return card.effects
-            .filter(eff=>eff.startsWith('bonus_multiplier_'))
+            .filter(eff=>eff.startsWith('bonus_multiplier_') && eff !== 'bonus_random')
             .reduce((sum,eff)=>{
                 const val=parseInt(eff.split('_').pop(),10);
                 return sum + (isNaN(val)?0:val);
             },0);
     }
 
+    _getCardMoneyBonus(card){
+        if(!card || !Array.isArray(card.effects)) return 0;
+        // Don't include random effect money here - handled separately
+        return card.effects
+            .filter(eff=>eff.startsWith('bonus_money_') && eff !== 'bonus_random')
+            .reduce((sum,eff)=>{
+                const val=parseInt(eff.split('_').pop(),10);
+                return sum + (isNaN(val)?0:val);
+            },0);
+    }
+
+    _getRandomEffectOutcome(card){
+        // Check if card has random effect
+        if(!card || !Array.isArray(card.effects)) return null;
+        if(!card.effects.includes('bonus_random')) return null;
+
+        // The backend already resolved the random outcome
+        // We need to detect which bonus was applied by looking at applied_bonuses in handResult
+        const cardKey = `${card.rank}${card.suit[0].toUpperCase()}`;
+
+        // Check applied_bonuses descriptions for this card
+        if(this.handResult && this.handResult.applied_bonuses){
+            for(const bonus of this.handResult.applied_bonuses){
+                if(bonus.includes(cardKey) && bonus.includes('Mystery')){
+                    if(bonus.includes('+$')){
+                        return {type: 'money', icon: '$', text: '+$1'};
+                    } else if(bonus.includes('Mult')){
+                        return {type: 'mult', icon: '★', text: '+5× Mult'};
+                    } else if(bonus.includes('Chips')){
+                        return {type: 'chips', icon: '✚', text: '+25 Chips'};
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
     /* ──────────  tiny util helpers  ────────── */
     _delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+    _spawnMysteryReveal(originEl, text){
+        return new Promise(resolve=>{
+            const rect = originEl.getBoundingClientRect();
+
+            const popup = document.createElement('div');
+            popup.className = 'mystery-reveal-popup';
+            popup.innerHTML = `<span class="mystery-reveal-text">${text}</span>`;
+            document.body.appendChild(popup);
+
+            /* Position above the card */
+            const startLeft = rect.left + rect.width / 2;
+            const startTop = rect.top - 10;
+            popup.style.left = `${startLeft}px`;
+            popup.style.top = `${startTop}px`;
+            popup.style.transform = 'translate(-50%, 0)';
+
+            /* Force reflow */
+            void popup.offsetWidth;
+
+            /* Animate upward and fade */
+            const animationDuration = this._delayWithSpeed(1000);
+            requestAnimationFrame(()=>{
+                popup.style.transition = `transform ${animationDuration}ms ease-out, opacity ${animationDuration}ms ease-out`;
+                popup.style.transform = 'translate(-50%, -60px)';
+                popup.style.opacity = '0';
+            });
+
+            setTimeout(()=>{
+                popup.remove();
+                resolve();
+            }, animationDuration);
+        });
+    }
 
     _spawnFloatingNum(originEl,text,colour,targetEl){
         return new Promise(resolve=>{
             const rect = originEl.getBoundingClientRect();
 
             const span = document.createElement('span');
-            span.className=`floating-num ${colour==='red'?'red':'blue'}`;
+            // Handle green color for money
+            let colorClass = 'blue';
+            if(colour === 'red') colorClass = 'red';
+            else if(colour === 'green') colorClass = 'green';
+            span.className=`floating-num ${colorClass}`;
             span.textContent=text;
             document.body.appendChild(span); // Use body for fixed positioning
 

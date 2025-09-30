@@ -108,3 +108,4 @@ poker_game/
 - **Look for pairs** early to build toward stronger hands
 - **Use draws wisely** - you only get 3 per round
 - **Calculate target scores** - you need increasingly higher scores each round
+- IMPORTANT! never run the app yourself, always ask the user to do this for you !

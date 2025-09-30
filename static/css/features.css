@@ -294,6 +294,10 @@
 }
 .floating-num.blue{color:#4facfe;}
 .floating-num.red{color:#e74c3c;}
+.floating-num.green{
+    color:#2ecc71;
+    text-shadow: 0 0 10px rgba(46,204,113,.8), 0 0 20px rgba(46,204,113,.4);
+}
 
 @keyframes floatToTarget{
     to{opacity:0; transform:translateY(-30px) scale(0.8);}
@@ -305,6 +309,77 @@
     50%{box-shadow:0 0 12px rgba(0,229,255,.8);}
 }
 .turbo-chip.flash{animation:invFlash var(--animation-speed-turbo-flash, 0.6s) ease 2;}
+
+/* Money bonus flash animation */
+@keyframes moneyFlash{
+    0%,100%{
+        transform: scale(1);
+        color: inherit;
+        text-shadow: none;
+    }
+    50%{
+        transform: scale(1.3);
+        color: #2ecc71;
+        text-shadow: 0 0 15px rgba(46,204,113,.9), 0 0 30px rgba(46,204,113,.6);
+    }
+}
+.money-bonus-flash{animation:moneyFlash var(--animation-speed-money-flash, 0.5s) ease 2;}
+
+/* Money icon flash on card */
+@keyframes moneyIconFlash{
+    0%,100%{
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50%{
+        transform: scale(1.4);
+        filter: brightness(1.8);
+    }
+}
+.money-icon-flash{animation:moneyIconFlash var(--animation-speed-money-icon-flash, 0.4s) ease 2;}
+
+/* Mystery reveal animation */
+@keyframes mysteryReveal{
+    0%{
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1);
+    }
+    50%{
+        transform: scale(1.5) rotate(180deg);
+        filter: brightness(2);
+    }
+    100%{
+        transform: scale(1) rotate(360deg);
+        filter: brightness(1);
+    }
+}
+.mystery-reveal{animation:mysteryReveal var(--animation-speed-mystery-reveal, 0.6s) ease;}
+
+/* Mystery reveal popup */
+.mystery-reveal-popup{
+    position: fixed;
+    pointer-events: none;
+    z-index: 3500;
+    opacity: 1;
+    transition: transform 1s ease-out, opacity 1s ease-out;
+}
+
+.mystery-reveal-text{
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    background: rgba(0,0,0,0.85);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255,255,255,0.6);
+    white-space: nowrap;
+}
+
+/* Mystery type-specific colors */
+.mystery-money{color: #2ecc71 !important;}
+.mystery-mult{color: #e74c3c !important;}
+.mystery-chips{color: #4facfe !important;}
 
 /* Multiplier increase animation */
 .mult-total.pulse {
