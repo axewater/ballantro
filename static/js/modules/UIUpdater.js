@@ -147,8 +147,12 @@ class UIUpdater {
         const startTime = performance.now();
         const difference = end - start;
         
+        // Apply animation speed multiplier to duration
+        const speedMultiplier = window.pokerGame?.settingsManager ? window.pokerGame.settingsManager.getAnimationSpeedMultiplier() : 1.0;
+        const adjustedDuration = duration * speedMultiplier;
+        
         const step = (timestamp) => {
-            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const progress = Math.min((timestamp - startTime) / adjustedDuration, 1);
             const easeProgress = this._easeOutQuart(progress);
             const current = Math.floor(start + difference * easeProgress);
             element.textContent = current;
@@ -160,7 +164,7 @@ class UIUpdater {
                 element.classList.add('highlight');
                 setTimeout(() => {
                     element.classList.remove('highlight');
-                }, 500);
+                }, 500 * speedMultiplier);
             }
         };
         

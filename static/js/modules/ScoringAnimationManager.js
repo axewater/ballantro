@@ -19,7 +19,7 @@ class ScoringAnimationManager{
         this.liveFinalTotalEl      = document.getElementById('live-final-total');
 
         /* misc */
-        this.animationDelayPerCard = 150; // ms - reduced from 800ms
+        this.baseAnimationDelayPerCard = 150; // ms - base delay, will be modified by speed setting
         this.isAnimating = false;
         this.triggeredSet = new Set(); // indices of cards that actually score
         this._suitMultiplierBonuses = {}; // Track multiplier bonuses per suit
@@ -33,6 +33,21 @@ class ScoringAnimationManager{
     /* Set the sound manager reference */
     setSoundManager(soundManager) {
         this.soundManager = soundManager;
+    }
+
+    /* Get animation speed multiplier from settings */
+    getAnimationSpeedMultiplier() {
+        return window.pokerGame?.settingsManager ? window.pokerGame.settingsManager.getAnimationSpeedMultiplier() : 1.0;
+    }
+
+    /* Get current animation delay per card based on speed setting */
+    get animationDelayPerCard() {
+        return this.baseAnimationDelayPerCard * this.getAnimationSpeedMultiplier();
+    }
+
+    /* Apply speed multiplier to delay values */
+    _delayWithSpeed(baseMs) {
+        return baseMs * this.getAnimationSpeedMultiplier();
     }
 
     /*  entry-point called by game.js  */
@@ -68,7 +83,7 @@ class ScoringAnimationManager{
             this._resetScoringArea();
             this.isAnimating=false;
             onComplete && onComplete();
-        },600);
+        }, this._delayWithSpeed(600));
     }
 
     /* ──────────  internal helpers  ────────── */
@@ -200,11 +215,11 @@ class ScoringAnimationManager{
             }
             cardEl.classList.add('card-shaking');
             /* slight zoom-out after shake finishes */
-            await this._delay(50);
+            await this._delay(this._delayWithSpeed(50));
             cardEl.classList.remove('card-shaking');
             cardEl.style.transition='transform .15s';
             cardEl.style.transform='scale(0.97)';
-            await this._delay(30);
+            await this._delay(this._delayWithSpeed(30));
             cardEl.style.transform='scale(1)';
 
             if(isTriggered){
@@ -245,7 +260,7 @@ class ScoringAnimationManager{
                 }
                 cardScoringIndex++;
             }
-            await this._delay(this.animationDelayPerCard - 100);
+            await this._delay(this._delayWithSpeed(this.baseAnimationDelayPerCard - 100));
         }
     }
 
@@ -282,11 +297,11 @@ class ScoringAnimationManager{
                     // Spawn floating number on each card hit by laser
                     this._spawnFloatingNum(cardEl, `+3`, 'red', this.liveMultTotalEl);
                     // Update score immediately after each laser hit (with small delay for visual flow)
-                    await this._delay(600); // Wait for floating number to travel partway
+                    await this._delay(this._delayWithSpeed(600)); // Wait for floating number to travel partway
                     this._turboMultBonus += 3;
                     this._runningMult += 3;
                     this.liveMultTotalEl.textContent = this._runningMult;
-                    await this._delay(100);
+                    await this._delay(this._delayWithSpeed(100));
                 }
                 
                 // Add the total multiplier bonus with animation from the chip
@@ -299,12 +314,12 @@ class ScoringAnimationManager{
             if (this.soundManager) {
                 this.soundManager.playTurboChipSound();
             }
-            await this._delay(50);
+            await this._delay(this._delayWithSpeed(50));
             chipEl.classList.remove('flash');
         }
         /* inventory effects are already included by backend in total_score;
            we just add a small pause so flash is visible. */
-        await this._delay(100);
+        await this._delay(this._delayWithSpeed(100));
     }
 
     // Create a visual connection between a turbo chip and a card
@@ -344,11 +359,11 @@ class ScoringAnimationManager{
         setTimeout(() => {
             line.style.transition = 'opacity 0.5s ease';
             line.style.opacity = '0';
-        }, 300);
+        }, this._delayWithSpeed(300));
         
         setTimeout(() => {
             document.body.removeChild(line);
-        }, 800);
+        }, this._delayWithSpeed(800));
     }
 
     async _finaliseScore(){
@@ -356,7 +371,7 @@ class ScoringAnimationManager{
         const start     = this._runningChips * this._runningMult;
         const targetVal = this._finalTarget;
         const el        = this.liveFinalTotalEl;
-        const duration  = 500;
+        const duration  = this._delayWithSpeed(500);
         const t0=performance.now();
         const step = (t)=>{
             const p=Math.min((t-t0)/duration,1);
@@ -369,7 +384,7 @@ class ScoringAnimationManager{
 
         /* ✨ pop effect on final total */
         this.liveFinalTotalEl.classList.add('final-total-pop');
-        setTimeout(()=>this.liveFinalTotalEl.classList.remove('final-total-pop'), 800);
+        setTimeout(()=>this.liveFinalTotalEl.classList.remove('final-total-pop'), this._delayWithSpeed(800));
     }
 
     _resetScoringArea(){
@@ -441,8 +456,9 @@ class ScoringAnimationManager{
             void span.offsetWidth;
             
             /* Animate with swirling motion */
+            const animationDuration = this._delayWithSpeed(1200);
             requestAnimationFrame(()=>{
-                span.style.transition = 'transform 1.2s ease-out, opacity 1.2s ease-out';
+                span.style.transition = `transform ${animationDuration}ms ease-out, opacity ${animationDuration}ms ease-out`;
                 const swirl = Math.random() * 60 - 30; // Random swirl -30 to +30px
                 span.style.transform = `translate(calc(-50% + ${swirl}px), calc(-50% - 100px))`;
                 span.style.opacity = '0';
@@ -451,7 +467,7 @@ class ScoringAnimationManager{
             setTimeout(()=>{
                 span.remove();
                 resolve();
-            }, 1200);
+            }, animationDuration);
         });
     }
 }

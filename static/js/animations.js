@@ -124,25 +124,28 @@ class GameAnimations {
             totalScore: document.getElementById('hand-score')
         };
 
-        // Animate each score component
-        this.countUpNumber(elements.cardChips, 0, handResult.card_chips, 800);
+        // Get animation speed multiplier from settings
+        const speedMultiplier = window.pokerGame?.settingsManager ? window.pokerGame.settingsManager.getAnimationSpeedMultiplier() : 1.0;
+
+        // Animate each score component with configurable timing
+        this.countUpNumber(elements.cardChips, 0, handResult.card_chips, 800 * speedMultiplier);
         
         setTimeout(() => {
-            this.countUpNumber(elements.baseChips, 0, handResult.base_chips, 600);
-        }, 300);
+            this.countUpNumber(elements.baseChips, 0, handResult.base_chips, 600 * speedMultiplier);
+        }, 300 * speedMultiplier);
         
         setTimeout(() => {
-            elements.multiplier.style.animation = 'multiplierPulse 0.8s ease-in-out';
+            elements.multiplier.style.animation = `multiplierPulse ${0.8 * speedMultiplier}s ease-in-out`;
             elements.multiplier.textContent = `×${handResult.multiplier}`;
-        }, 600);
+        }, 600 * speedMultiplier);
         
         setTimeout(() => {
-            this.countUpNumber(elements.totalScore, 0, handResult.total_score, 1200, () => {
+            this.countUpNumber(elements.totalScore, 0, handResult.total_score, 1200 * speedMultiplier, () => {
                 // Final score celebration
-                elements.totalScore.style.animation = 'scoreCelebration 1s ease-in-out';
+                elements.totalScore.style.animation = `scoreCelebration ${1 * speedMultiplier}s ease-in-out`;
                 this.createFireworks(elements.totalScore);
             });
-        }, 900);
+        }, 900 * speedMultiplier);
     }
 
     // Enhanced number counting with easing

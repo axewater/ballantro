@@ -3,7 +3,8 @@ class SettingsManager {
         this.settings = {
             soundVolume: 0.7,
             musicVolume: 0.5,
-            videoAudioEnabled: true
+            videoAudioEnabled: true,
+            animationSpeed: 2 // 1=slow, 2=normal, 3=fast, 4=very fast
         };
         
         this.loadSettings();
@@ -49,11 +50,27 @@ class SettingsManager {
         // Apply video audio setting
         const introVideo = document.getElementById('intro-video');
         if (introVideo) {
+            const videoSource = introVideo.querySelector('source');
+            if (videoSource) {
+                const audioVideoPath = '/static/assets/video/poker_game_intro.mp4';
+                const noAudioVideoPath = '/static/assets/video/poker_game_intro_no_audio.mp4';
+                
+                const newSrc = this.settings.videoAudioEnabled ? audioVideoPath : noAudioVideoPath;
+                
+                if (videoSource.src !== newSrc) {
+                    videoSource.src = newSrc;
+                    introVideo.load(); // Reload the video with new source
+                }
+            }
+            
             introVideo.muted = !this.settings.videoAudioEnabled;
             if (this.settings.videoAudioEnabled) {
                 introVideo.volume = this.settings.soundVolume;
             }
         }
+
+        // Apply animation speed to CSS custom properties
+        this.applyAnimationSpeed();
     }
 
     createSettingsModal() {
@@ -82,6 +99,13 @@ class SettingsManager {
                             <div class="toggle-container">
                                 <input type="checkbox" id="video-audio-toggle" ${this.settings.videoAudioEnabled ? 'checked' : ''}>
                                 <span class="toggle-label">${this.settings.videoAudioEnabled ? 'Enabled' : 'Disabled'}</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label for="animation-speed-slider">Animation Speed</label>
+                            <div class="slider-container">
+                                <input type="range" id="animation-speed-slider" min="1" max="4" step="1" value="${this.settings.animationSpeed}">
+                                <span id="animation-speed-value">${this.getSpeedLabel(this.settings.animationSpeed)}</span>
                             </div>
                         </div>
                     </div>
@@ -130,6 +154,18 @@ class SettingsManager {
             toggleLabel.textContent = enabled ? 'Enabled' : 'Disabled';
         });
 
+        // Animation speed slider
+        const animationSpeedSlider = document.getElementById('animation-speed-slider');
+        const animationSpeedValue = document.getElementById('animation-speed-value');
+        
+        animationSpeedSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            this.setSetting('animationSpeed', value);
+            animationSpeedValue.textContent = this.getSpeedLabel(value);
+            // Apply animation speed immediately when slider changes
+            this.applyAnimationSpeed();
+        });
+
         // Close button
         document.getElementById('close-settings-btn').addEventListener('click', () => {
             this.hideSettings();
@@ -160,6 +196,46 @@ class SettingsManager {
     // Initialize settings when the page loads
     initialize() {
         this.applySettings();
+    }
+
+    getSpeedLabel(speed) {
+        const labels = {
+            1: 'Slow',
+            2: 'Normal', 
+            3: 'Fast',
+            4: 'Very Fast'
+        };
+        return labels[speed] || 'Normal';
+    }
+
+    getAnimationSpeedMultiplier() {
+        // Return multiplier to adjust delays (higher speed = lower multiplier = faster animations)
+        const multipliers = {
+            1: 2.0,   // Slow: 100% slower (2x slower)
+            2: 1.0,   // Normal: no change
+            3: 0.5,   // Fast: 100% faster (2x faster) 
+            4: 0.25   // Very Fast: 400% faster (4x faster)
+        };
+        return multipliers[this.settings.animationSpeed] || 1.0;
+    }
+
+    applyAnimationSpeed() {
+        const multiplier = this.getAnimationSpeedMultiplier();
+        
+        // Update CSS custom properties for animation durations
+        const root = document.documentElement;
+        root.style.setProperty('--animation-speed-card-shake', `${0.4 * multiplier}s`);
+        root.style.setProperty('--animation-speed-floating-num', `${1.2 * multiplier}s`);
+        root.style.setProperty('--animation-speed-turbo-flash', `${0.6 * multiplier}s`);
+        root.style.setProperty('--animation-speed-final-pop', `${0.8 * multiplier}s`);
+        
+        console.log('Animation speed applied:', {
+            multiplier,
+            cardShake: `${0.4 * multiplier}s`,
+            floatingNum: `${1.2 * multiplier}s`,
+            turboFlash: `${0.6 * multiplier}s`,
+            finalPop: `${0.8 * multiplier}s`
+        });
     }
 }
 

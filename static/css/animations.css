@@ -101,7 +101,7 @@
     100%{transform:scale(1);   color:#00e5ff;}
 }
 .final-total-pop{
-    animation:finalScorePop .8s ease-out;
+    animation:finalScorePop var(--animation-speed-final-pop, 0.8s) ease-out;
 }
 
 /* Animation for turbo chip activation */

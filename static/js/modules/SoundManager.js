@@ -133,8 +133,9 @@ class SoundManager {
         // Base frequency starts at 150Hz, goes up to 800Hz
         const baseFreq = 150 + (progress * 650);
         
-        // Duration starts at 0.4s, goes down to 0.1s
-        const duration = 0.4 - (progress * 0.3);
+        // Duration starts at 0.4s, goes down to 0.1s, adjusted by animation speed
+        const speedMultiplier = window.pokerGame?.settingsManager ? window.pokerGame.settingsManager.getAnimationSpeedMultiplier() : 1.0;
+        const duration = (0.4 - (progress * 0.3)) * speedMultiplier;
         
         // Set up sawtooth wave for buzzy quality
         oscillator.type = 'sawtooth';

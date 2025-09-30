@@ -159,9 +159,7 @@
     font-size: 1.5rem;
 }
 
-.btn-icon {
-    /* font-size: 1.2rem; */ /* Icon size, icons are removed */
-}
+
 .btn.active-sort {
     background: linear-gradient(135deg, #4facfe 0%, #2ecc71 100%);
     color: white;
