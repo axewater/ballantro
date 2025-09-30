@@ -648,26 +648,6 @@
     }
 }
 
-/* Drop animation (when card is dropped) */
-.card-drop-animation {
-    animation: cardDropFlash 0.3s ease-out;
-}
-
-@keyframes cardDropFlash {
-    0% {
-        box-shadow: 0 0 30px rgba(240, 147, 251, 1);
-        filter: brightness(1.4);
-    }
-    50% {
-        box-shadow: 0 0 40px rgba(102, 126, 234, 1);
-        filter: brightness(1.2);
-    }
-    100% {
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        filter: brightness(1);
-    }
-}
-
 /* Body cursor change during drag */
 body.card-drag-active {
     cursor: grabbing !important;

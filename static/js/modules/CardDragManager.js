@@ -491,22 +491,8 @@ class CardDragManager {
     }
 
     animateDrop() {
-        return new Promise((resolve) => {
-            // Brief flash effect on dropped card only
-            if (this.draggedElement) {
-                this.draggedElement.classList.add('card-drop-animation');
-
-                // Remove flash effect after animation
-                setTimeout(() => {
-                    if (this.draggedElement) {
-                        this.draggedElement.classList.remove('card-drop-animation');
-                    }
-                    resolve();
-                }, 300);
-            } else {
-                resolve();
-            }
-        });
+        // Instant drop - no animations
+        return Promise.resolve();
     }
 
     resetCardPositions() {
