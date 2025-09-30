@@ -219,7 +219,15 @@ class CardManager {
     }
 
     _calculateSort(hand, sortType) {
-        const indexedHand = hand.map((card, index) => ({ card, originalIndex: index }));
+        // Reconstruct the current visual order by applying the mapping
+        // visualToLogical[i] gives the backend index for visual position i
+        const currentVisualHand = this.visualToLogical.map(backendIdx => hand[backendIdx]);
+
+        // Now sort based on the current visual positions (0, 1, 2, ...)
+        const indexedHand = currentVisualHand.map((card, visualIndex) => ({
+            card,
+            currentVisualIndex: visualIndex
+        }));
 
         if (sortType === 'rank') {
             indexedHand.sort((a, b) => {
@@ -235,12 +243,14 @@ class CardManager {
             });
         }
 
-        const newVisualOrder = indexedHand.map(item => item.originalIndex);
+        // newVisualOrder[i] = which current visual position should move to position i
+        const newVisualOrder = indexedHand.map(item => item.currentVisualIndex);
         const newHand = indexedHand.map(item => item.card); // purely for DOM building
         const newSelectedCards = new Set(); // visual indices after sort
-        
+
+        // Map selected cards from old visual positions to new visual positions
         indexedHand.forEach((item, newIndex) => {
-            if (this.selectedCards.has(item.originalIndex)) {
+            if (this.selectedCards.has(item.currentVisualIndex)) {
                 newSelectedCards.add(newIndex);
             }
         });
