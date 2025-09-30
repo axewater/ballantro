@@ -134,14 +134,26 @@ class PokerGame {
             return playerHandContainer.querySelector(`.card[data-index="${visualIndex}"]`);
         }).filter(el => el); // Filter out any nulls
 
-        // Capture the cards that are STAYING (not being discarded) by their identity
+        // Capture original hand structure before discarding
         const currentHand = this.gameState.getHand();
-        const stayingCards = currentHand
-            .map((card, index) => ({ card, index }))
-            .filter(({ index }) => !selectedVisualIndices.includes(index))
-            .map(({ card }) => `${card.rank}-${card.suit}`); // Create unique identifier
 
-        console.log("CLIENT: Cards staying in hand:", stayingCards);
+        // Map staying cards to their original positions
+        const stayingCardPositions = new Map(); // card-id -> original visual index
+        const discardedPositions = []; // positions that will have gaps
+
+        currentHand.forEach((card, index) => {
+            const cardId = `${card.rank}-${card.suit}`;
+            if (selectedVisualIndices.includes(index)) {
+                // This position will be a gap
+                discardedPositions.push(index);
+            } else {
+                // This card is staying, remember its position
+                stayingCardPositions.set(cardId, index);
+            }
+        });
+
+        console.log("CLIENT: Staying card positions:", stayingCardPositions);
+        console.log("CLIENT: Discarded positions (gaps):", discardedPositions);
 
         // Animate the selected cards flying out to the right
         await window.gameAnimations.queueAnimation(() =>
@@ -174,28 +186,78 @@ class PokerGame {
                     this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 });
 
-                // Identify which cards in the new DOM are the staying cards vs new cards
+                // Identify which cards are staying vs new
                 const newHand = this.gameState.getHand();
-                const allCardElements = document.querySelectorAll('#player-hand .card');
-                const newCardElements = [];
+                const allCardElements = Array.from(document.querySelectorAll('#player-hand .card'));
+                const playerHandContainer = document.getElementById('player-hand');
 
-                allCardElements.forEach((cardElement, index) => {
+                // Build a map of card-id to element
+                const cardElementMap = new Map();
+                allCardElements.forEach((element, index) => {
                     const card = newHand[index];
                     const cardId = `${card.rank}-${card.suit}`;
-
-                    if (stayingCards.includes(cardId)) {
-                        // This card was already in the hand - make it appear instantly without animation
-                        cardElement.style.opacity = '1';
-                        cardElement.style.transform = 'translateX(0) scale(1) rotate(0deg)';
-                        console.log(`CLIENT: Card ${cardId} is staying, skipping animation`);
-                    } else {
-                        // This is a new card - it should animate in
-                        newCardElements.push(cardElement);
-                        console.log(`CLIENT: Card ${cardId} is new, will animate`);
-                    }
+                    cardElementMap.set(cardId, { element, card, backendIndex: index });
                 });
 
-                // Only animate the new cards flying in
+                // Build the desired visual order
+                // Original hand had positions 0-7, we need to fill them
+                const desiredOrder = [];
+                const newCardElements = [];
+                let newCardIndex = 0;
+
+                // For each original position, either place a staying card or a new card
+                for (let pos = 0; pos < currentHand.length; pos++) {
+                    if (discardedPositions.includes(pos)) {
+                        // This position had a discarded card, place a new card here
+                        // Find the next new card (one not in stayingCardPositions)
+                        for (let i = 0; i < newHand.length; i++) {
+                            const card = newHand[i];
+                            const cardId = `${card.rank}-${card.suit}`;
+                            if (!stayingCardPositions.has(cardId) && !desiredOrder.includes(cardElementMap.get(cardId)?.element)) {
+                                const cardInfo = cardElementMap.get(cardId);
+                                if (cardInfo) {
+                                    desiredOrder.push(cardInfo.element);
+                                    newCardElements.push(cardInfo.element);
+                                    console.log(`CLIENT: New card ${cardId} will fill gap at position ${pos}`);
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // This position had a staying card
+                        const originalCard = currentHand[pos];
+                        const cardId = `${originalCard.rank}-${originalCard.suit}`;
+                        const cardInfo = cardElementMap.get(cardId);
+                        if (cardInfo) {
+                            desiredOrder.push(cardInfo.element);
+                            console.log(`CLIENT: Card ${cardId} stays at position ${pos}`);
+                        }
+                    }
+                }
+
+                // Reorder DOM elements to match desired visual order
+                desiredOrder.forEach((element, index) => {
+                    playerHandContainer.appendChild(element); // appendChild moves the element
+                    element.dataset.index = index; // Update data-index for click handling
+                });
+
+                // Set visual states
+                allCardElements.forEach((element) => {
+                    const card = newHand.find(c => {
+                        const el = cardElementMap.get(`${c.rank}-${c.suit}`);
+                        return el?.element === element;
+                    });
+                    const cardId = card ? `${card.rank}-${card.suit}` : '';
+
+                    if (stayingCardPositions.has(cardId)) {
+                        // Staying card - show instantly
+                        element.style.opacity = '1';
+                        element.style.transform = 'translateX(0) scale(1) rotate(0deg)';
+                    }
+                    // New cards keep their initial animation state (opacity: 0, translateX: 300px)
+                });
+
+                // Animate new cards flying in
                 if (newCardElements.length > 0) {
                     this.soundManager.playCardDealSound();
                     window.gameAnimations.queueAnimation(() =>
