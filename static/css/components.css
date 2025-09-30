@@ -620,34 +620,6 @@
     }
 }
 
-/* Drop zone indicator */
-.card-drop-zone {
-    background: linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(102, 126, 234, 0.8) 10%,
-        rgba(240, 147, 251, 1) 50%,
-        rgba(102, 126, 234, 0.8) 90%,
-        transparent 100%
-    );
-    box-shadow:
-        0 0 15px rgba(240, 147, 251, 0.8),
-        0 0 30px rgba(102, 126, 234, 0.6);
-    border-radius: 2px;
-    animation: dropZonePulse 1s ease-in-out infinite;
-}
-
-@keyframes dropZonePulse {
-    0%, 100% {
-        opacity: 0.7;
-        transform: translateY(-50%) scaleY(1);
-    }
-    50% {
-        opacity: 1;
-        transform: translateY(-50%) scaleY(1.1);
-    }
-}
-
 /* Body cursor change during drag */
 body.card-drag-active {
     cursor: grabbing !important;

@@ -9,7 +9,6 @@ class CardDragManager {
         this.draggedIndex = null;
         this.draggedElement = null;
         this.dragPreview = null;
-        this.dropZoneIndicator = null;
         this.hoverIndex = null;
 
         // Mouse tracking for smooth animation
@@ -117,9 +116,6 @@ class CardDragManager {
         // Create drag preview
         this.createDragPreview(cardElement, clientX, clientY);
 
-        // Create drop zone indicator
-        this.createDropZoneIndicator();
-
         // Add dragging class to original card
         cardElement.classList.add('card-dragging');
         cardElement.style.pointerEvents = 'none';
@@ -163,28 +159,6 @@ class CardDragManager {
         this.dragPreview.style.top = y - rect.height / 2 + 'px';
 
         document.body.appendChild(this.dragPreview);
-    }
-
-    createDropZoneIndicator() {
-        // Clean up any existing drop zone indicators first
-        const existingIndicators = this.container.querySelectorAll('.card-drop-zone');
-        existingIndicators.forEach(indicator => indicator.remove());
-
-        // Only create if we don't already have one stored
-        if (this.dropZoneIndicator && this.dropZoneIndicator.parentNode) {
-            return;
-        }
-
-        this.dropZoneIndicator = document.createElement('div');
-        this.dropZoneIndicator.className = 'card-drop-zone';
-        this.dropZoneIndicator.style.position = 'absolute';
-        this.dropZoneIndicator.style.width = '4px';
-        this.dropZoneIndicator.style.height = '140px';
-        this.dropZoneIndicator.style.top = '50%';
-        this.dropZoneIndicator.style.transform = 'translateY(-50%)';
-        this.dropZoneIndicator.style.opacity = '0';
-        this.dropZoneIndicator.style.transition = 'opacity 0.2s ease, left 0.2s ease';
-        this.container.appendChild(this.dropZoneIndicator);
     }
 
     handleMouseMove(e) {
@@ -253,7 +227,6 @@ class CardDragManager {
             // Update hover index and card positions
             this.updateHoverIndex();
             this.updateCardShifts();
-            this.updateDropZoneIndicator();
 
             this.animationFrameId = requestAnimationFrame(animate);
         };
@@ -336,32 +309,6 @@ class CardDragManager {
             card.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
             card.style.transform = `translateX(${shift}px)`;
         });
-    }
-
-    updateDropZoneIndicator() {
-        if (!this.dropZoneIndicator) return;
-
-        // Calculate position for drop zone indicator
-        const containerRect = this.container.getBoundingClientRect();
-        let indicatorLeft = 0;
-
-        if (this.hoverIndex === 0) {
-            // Before first card
-            indicatorLeft = -8;
-        } else if (this.hoverIndex >= this.cardPositions.length) {
-            // After last card
-            const lastCard = this.cardPositions[this.cardPositions.length - 1];
-            indicatorLeft = lastCard.right - containerRect.left + 8;
-        } else {
-            // Between cards
-            const targetPos = this.cardPositions.find(p => p.index === this.hoverIndex);
-            if (targetPos) {
-                indicatorLeft = targetPos.left - containerRect.left - 8;
-            }
-        }
-
-        this.dropZoneIndicator.style.left = indicatorLeft + 'px';
-        this.dropZoneIndicator.style.opacity = '1';
     }
 
     handleMouseUp(e) {
@@ -524,17 +471,6 @@ class CardDragManager {
             }, 200);
         }
 
-        // Remove drop zone indicator
-        if (this.dropZoneIndicator && this.dropZoneIndicator.parentNode) {
-            this.dropZoneIndicator.style.opacity = '0';
-
-            setTimeout(() => {
-                if (this.dropZoneIndicator && this.dropZoneIndicator.parentNode) {
-                    this.dropZoneIndicator.parentNode.removeChild(this.dropZoneIndicator);
-                }
-            }, 200);
-        }
-
         // Remove body class
         document.body.classList.remove('card-drag-active');
 
@@ -544,7 +480,6 @@ class CardDragManager {
         this.draggedIndex = null;
         this.draggedElement = null;
         this.dragPreview = null;
-        this.dropZoneIndicator = null;
         this.hoverIndex = null;
         this.lastHoverChangeX = null;
         this.mouseDownX = 0;
