@@ -69,7 +69,13 @@ class PokerGame {
                 
                 // Initialize right-click handling
                 this._initializeRightClickHandling();
-                
+
+                // Initialize drag-and-drop for card reordering
+                const playerHandContainer = document.getElementById('player-hand');
+                if (playerHandContainer) {
+                    this.cardManager.initializeDragDrop(playerHandContainer, this.gameState);
+                }
+
                 this.screenManager.showScreen('game');
                 this.previewManager.updateLivePreview(this.cardManager.selectedCards, this.gameState.gameState);
                 this.uiUpdater.updateSortButtonAppearance(this.cardManager.activeSortType); // Update button visuals

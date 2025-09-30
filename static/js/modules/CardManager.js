@@ -12,21 +12,24 @@ class CardManager {
             to the original index that the backend still expects.
             It is re-created whenever a brand-new hand is received from the backend and
             is recomposed on every visual sort so that we can always translate the
-            user’s selection back to backend indices accurately. */
+            user's selection back to backend indices accurately. */
         this.visualToLogical = [];
-        
+
         // Define order for sorting cards
-        this.RANK_ORDER_MAP = { 
-            '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 
-            '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 
+        this.RANK_ORDER_MAP = {
+            '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
+            '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
         };
-        this.SUIT_ORDER_MAP = { 
-            'spades': 4, 'hearts': 3, 'clubs': 2, 'diamonds': 1 
+        this.SUIT_ORDER_MAP = {
+            'spades': 4, 'hearts': 3, 'clubs': 2, 'diamonds': 1
         };
-        
+
         // Right-click drag selection
         this.rightClickDragActive = false;
         this.cardsInDragSelection = new Set();
+
+        // Drag-and-drop manager
+        this.dragDropManager = null;
     }
 
     /* --------------------------------------------------------------------- */
@@ -364,7 +367,27 @@ class CardManager {
         this.activeSortType = null;
         // Mapping reset is handled explicitly when a fresh hand arrives
     }
-    
+
+    // ------------------------------------------------------------------ //
+    //  Drag-and-Drop Initialization                                      //
+    // ------------------------------------------------------------------ //
+    initializeDragDrop(container, gameState) {
+        // Create drag-drop manager if it doesn't exist
+        if (!this.dragDropManager && window.CardDragManager) {
+            this.dragDropManager = new window.CardDragManager(this, gameState);
+            this.dragDropManager.initialize(container);
+            console.log('CARD_MANAGER: Drag-and-drop initialized');
+        }
+    }
+
+    destroyDragDrop() {
+        if (this.dragDropManager) {
+            this.dragDropManager.destroy();
+            this.dragDropManager = null;
+            console.log('CARD_MANAGER: Drag-and-drop destroyed');
+        }
+    }
+
     // Right-click drag selection methods
     startRightClickDrag(index) {
         if (this.isSorting) return;
