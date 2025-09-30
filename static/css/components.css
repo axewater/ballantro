@@ -582,7 +582,7 @@
 
 /* Card being dragged (original position) */
 .card-dragging {
-    opacity: 0.4 !important;
+    opacity: 0 !important;
     transform: translateY(-10px) scale(1.05) !important;
     transition: opacity 0.2s ease, transform 0.2s ease !important;
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
@@ -677,6 +677,11 @@ body.card-drag-active {
 
 body.card-drag-active .card {
     cursor: grabbing !important;
+}
+
+/* Disable pointer events on cards during drag to prevent hover sounds */
+body.card-drag-active .card:not(.card-drag-preview) {
+    pointer-events: none !important;
 }
 
 /* Prevent card hover effects during drag */

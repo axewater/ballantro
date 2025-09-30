@@ -18,6 +18,9 @@ class CardDragManager {
         this.lastMouseY = 0;
         this.velocityX = 0;
 
+        // Hysteresis for hover index (prevents rapid flicking)
+        this.lastHoverChangeX = null;
+
         // Card positions cache
         this.cardPositions = [];
 
@@ -153,6 +156,15 @@ class CardDragManager {
     }
 
     createDropZoneIndicator() {
+        // Clean up any existing drop zone indicators first
+        const existingIndicators = this.container.querySelectorAll('.card-drop-zone');
+        existingIndicators.forEach(indicator => indicator.remove());
+
+        // Only create if we don't already have one stored
+        if (this.dropZoneIndicator && this.dropZoneIndicator.parentNode) {
+            return;
+        }
+
         this.dropZoneIndicator = document.createElement('div');
         this.dropZoneIndicator.className = 'card-drop-zone';
         this.dropZoneIndicator.style.position = 'absolute';
@@ -228,8 +240,11 @@ class CardDragManager {
         const containerRect = this.container.getBoundingClientRect();
         const relativeX = this.mouseX - containerRect.left;
 
-        // Find which position the card should drop into
-        let newHoverIndex = 0;
+        // Hysteresis constant - minimum pixels mouse must move before changing position
+        const HYSTERESIS_THRESHOLD = 30;
+
+        // Calculate what the hover index would be
+        let calculatedHoverIndex = 0;
 
         for (let i = 0; i < this.cardPositions.length; i++) {
             const pos = this.cardPositions[i];
@@ -240,19 +255,32 @@ class CardDragManager {
             const cardCenterX = pos.centerX - containerRect.left;
 
             if (relativeX > cardCenterX) {
-                newHoverIndex = i + 1;
+                calculatedHoverIndex = i + 1;
             }
         }
 
         // Clamp to valid range
-        newHoverIndex = Math.max(0, Math.min(this.cardPositions.length, newHoverIndex));
+        calculatedHoverIndex = Math.max(0, Math.min(this.cardPositions.length, calculatedHoverIndex));
 
         // Adjust if dragging from left to right
-        if (newHoverIndex > this.draggedIndex) {
-            newHoverIndex = Math.max(0, newHoverIndex - 1);
+        if (calculatedHoverIndex > this.draggedIndex) {
+            calculatedHoverIndex = Math.max(0, calculatedHoverIndex - 1);
         }
 
-        this.hoverIndex = newHoverIndex;
+        // Apply hysteresis - only update if:
+        // 1. This is the first calculation (hoverIndex is null), OR
+        // 2. The calculated index is different AND we've moved far enough since last change
+        if (this.hoverIndex === null) {
+            // First time - accept the calculated index
+            this.hoverIndex = calculatedHoverIndex;
+            this.lastHoverChangeX = relativeX;
+        } else if (calculatedHoverIndex !== this.hoverIndex) {
+            // Index wants to change - check if we've moved far enough
+            if (this.lastHoverChangeX === null || Math.abs(relativeX - this.lastHoverChangeX) >= HYSTERESIS_THRESHOLD) {
+                this.hoverIndex = calculatedHoverIndex;
+                this.lastHoverChangeX = relativeX;
+            }
+        }
     }
 
     updateCardShifts() {
@@ -487,6 +515,7 @@ class CardDragManager {
         this.dragPreview = null;
         this.dropZoneIndicator = null;
         this.hoverIndex = null;
+        this.lastHoverChangeX = null;
         this.cardPositions = [];
     }
 
