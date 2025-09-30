@@ -394,8 +394,23 @@ class CardDragManager {
             return this.cardManager.visualToLogical[oldVisualIndex];
         });
 
-        // Animate the drop
-        await this.animateDrop(newOrder);
+        // Prepare dragged card for instant placement
+        // Remove the dragging class to make it visible
+        if (this.draggedElement) {
+            this.draggedElement.classList.remove('card-dragging');
+            // Clear any transforms from shifting
+            this.draggedElement.style.transform = '';
+            // Disable transitions temporarily for instant placement
+            this.draggedElement.style.transition = 'none';
+        }
+
+        // Clear all card transforms before reordering
+        cardElements.forEach(card => {
+            card.style.transform = '';
+        });
+
+        // Brief flash effect on dropped card
+        await this.animateDrop();
 
         // Update CardManager mapping
         this.cardManager.visualToLogical = newVisualToLogical;
@@ -411,12 +426,15 @@ class CardDragManager {
         });
         this.cardManager.selectedCards = newSelectedCards;
 
-        // Reorder DOM elements
+        // Reorder DOM elements (instant, no animation)
         this.container.replaceChildren(...newOrder);
 
         // Update data-index attributes
         newOrder.forEach((card, newIndex) => {
             card.dataset.index = newIndex;
+
+            // Re-enable transitions after instant placement
+            card.style.transition = '';
 
             // Update selected class
             if (newSelectedCards.has(newIndex)) {
@@ -437,31 +455,22 @@ class CardDragManager {
         }
     }
 
-    animateDrop(newOrder) {
+    animateDrop() {
         return new Promise((resolve) => {
-            // Add drop animation class to dragged card
+            // Brief flash effect on dropped card only
             if (this.draggedElement) {
                 this.draggedElement.classList.add('card-drop-animation');
 
-                // Flash effect
+                // Remove flash effect after animation
                 setTimeout(() => {
-                    this.draggedElement.classList.remove('card-drop-animation');
-                }, 600);
+                    if (this.draggedElement) {
+                        this.draggedElement.classList.remove('card-drop-animation');
+                    }
+                    resolve();
+                }, 300);
+            } else {
+                resolve();
             }
-
-            // Stagger settle animation for all cards
-            newOrder.forEach((card, index) => {
-                setTimeout(() => {
-                    card.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                    card.style.transform = 'translateY(-5px)';
-
-                    setTimeout(() => {
-                        card.style.transform = '';
-                    }, 150);
-                }, index * 30);
-            });
-
-            setTimeout(resolve, newOrder.length * 30 + 200);
         });
     }
 

@@ -650,21 +650,19 @@
 
 /* Drop animation (when card is dropped) */
 .card-drop-animation {
-    animation: cardDropFlash 0.6s ease-out;
+    animation: cardDropFlash 0.3s ease-out;
 }
 
 @keyframes cardDropFlash {
     0% {
-        transform: scale(1.2) rotate(5deg);
         box-shadow: 0 0 30px rgba(240, 147, 251, 1);
-        filter: brightness(1.5);
+        filter: brightness(1.4);
     }
     50% {
-        transform: scale(0.95) rotate(-2deg);
         box-shadow: 0 0 40px rgba(102, 126, 234, 1);
+        filter: brightness(1.2);
     }
     100% {
-        transform: scale(1) rotate(0deg);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         filter: brightness(1);
     }
